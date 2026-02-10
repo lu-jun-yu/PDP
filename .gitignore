@@ -1,0 +1,5 @@
+__pycache__
+models/
+token.json
+results/*/*.json
+data
