@@ -64,13 +64,13 @@ PDP-25K 是一个中文检察起诉决定预测数据集，包含约 25,000 条�
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `id` | string | 文书唯一标识 |
-| `meta_year` | int | 文书年份 |
-| `meta_province` | string | 省份 |
+| `meta` | dict | 元数据（含 `year`: int, `province`: string） |
 | `person_info` | string | 当事人信息（已脱敏） |
 | `procedure` | string | 程序信息 |
 | `fact` | string | 案件事实 |
 | `relevant_articles_cl` | list[string] | 相关刑法条文 |
 | `relevant_articles_cpl` | list[string] | 相关刑事诉讼法条文 |
+| `relevant_articles_cpr` | list[string] | 相关刑事诉讼规则条文 |
 | `decision` | string | 决定类型（起诉/相对不起诉/法定不起诉/存疑不起诉） |
 | `charges` | list[string] | 罪名 |
 | `raw_reasoning_and_decision` | string | 原始推理与决定文本 |

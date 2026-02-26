@@ -28,21 +28,24 @@ logger = logging.getLogger(__name__)
 # 数据集 schema 定义
 FEATURES = Features({
     "id": Value("string"),
-    "meta_year": Value("int32"),
-    "meta_province": Value("string"),
+    "meta": {
+        "year": Value("int32"),
+        "province": Value("string"),
+    },
     "person_info": Value("string"),
     "procedure": Value("string"),
     "fact": Value("string"),
     "relevant_articles_cl": Sequence(Value("string")),
     "relevant_articles_cpl": Sequence(Value("string")),
+    "relevant_articles_cpr": Sequence(Value("string")),
     "decision": Value("string"),
     "charges": Sequence(Value("string")),
     "raw_reasoning_and_decision": Value("string"),
 })
 
 
-def load_and_flatten(json_path: str) -> list[dict]:
-    """读取 dataset.json 并将 meta 字段展平。"""
+def load_json(json_path: str) -> list[dict]:
+    """读取 dataset.json，处理缺失值。"""
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -51,13 +54,16 @@ def load_and_flatten(json_path: str) -> list[dict]:
         meta = item.get("meta", {})
         records.append({
             "id": item.get("id", ""),
-            "meta_year": meta.get("year") or 0,
-            "meta_province": meta.get("province", ""),
+            "meta": {
+                "year": meta.get("year") or 0,
+                "province": meta.get("province", ""),
+            },
             "person_info": item.get("person_info", ""),
             "procedure": item.get("procedure", ""),
             "fact": item.get("fact", ""),
             "relevant_articles_cl": item.get("relevant_articles_cl", []),
             "relevant_articles_cpl": item.get("relevant_articles_cpl", []),
+            "relevant_articles_cpr": item.get("relevant_articles_cpr", []),
             "decision": item.get("decision", ""),
             "charges": item.get("charges", []),
             "raw_reasoning_and_decision": item.get("raw_reasoning_and_decision", ""),
@@ -88,7 +94,7 @@ def main():
             logger.warning(f"[{split}] 文件不存在: {json_path}，跳过")
             continue
 
-        records = load_and_flatten(json_path)
+        records = load_json(json_path)
         ds = Dataset.from_list(records, features=FEATURES)
         splits[split] = ds
         logger.info(f"[{split}] 加载 {len(ds)} 条记录")
