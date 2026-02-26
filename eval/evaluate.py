@@ -282,7 +282,11 @@ def main():
 
     # ---- 加载数据 ----
     logger.info(f"加载数据集: {args.data_path} [{args.split}]")
-    dataset_dict = load_from_disk(args.data_path)
+    try:
+        dataset_dict = load_from_disk(args.data_path)
+    except FileNotFoundError:
+        from datasets import load_dataset
+        dataset_dict = load_dataset(args.data_path)
     dataset = dataset_dict[args.split]
 
     logger.info(f"评估样本数: {len(dataset)}")
