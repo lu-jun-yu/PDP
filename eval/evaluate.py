@@ -182,6 +182,7 @@ def compute_metrics(predictions: list[dict], references: list[dict]) -> dict:
     结果评估 (charges): Precision / Recall / F1
     """
     metrics = defaultdict(list)
+    decision_per_class = defaultdict(list)  # 各决定类别的准确率
 
     for pred, ref in zip(predictions, references):
         # 判断参考答案的决定类型是否有罪名
@@ -203,10 +204,10 @@ def compute_metrics(predictions: list[dict], references: list[dict]) -> dict:
         metrics["articles_recall"].append(r)
         metrics["articles_f1"].append(f)
 
-        # --- 结果评估：决定（所有样本） ---
-        metrics["decision_accuracy"].append(
-            1.0 if pred["decision"] == ref["decision"] else 0.0
-        )
+        # --- 结果评估：决定（所有样本 + 分类） ---
+        correct = 1.0 if pred["decision"] == ref["decision"] else 0.0
+        metrics["decision_accuracy"].append(correct)
+        decision_per_class[ref["decision"]].append(correct)
 
         # --- 结果评估：罪名（仅起诉/相对不起诉） ---
         if has_charges:
@@ -221,6 +222,14 @@ def compute_metrics(predictions: list[dict], references: list[dict]) -> dict:
     result = {}
     for key, values in metrics.items():
         result[key] = sum(values) / len(values) if values else 0.0
+
+    # 各决定类别的准确率
+    result["decision_per_class"] = {}
+    for cls, values in decision_per_class.items():
+        result["decision_per_class"][cls] = {
+            "accuracy": sum(values) / len(values) if values else 0.0,
+            "count": len(values),
+        }
 
     return result
 
@@ -465,6 +474,8 @@ def main():
     print("\n【结果评估】")
     print(f"  决定 (decision):")
     print(f"    Accuracy:  {metrics['decision_accuracy']:.4f}")
+    for cls, info in metrics["decision_per_class"].items():
+        print(f"    {cls}: {info['accuracy']:.4f} ({info['count']} 样本)")
     print(f"  罪名 (charges):")
     print(f"    Precision: {metrics['charges_precision']:.4f}")
     print(f"    Recall:    {metrics['charges_recall']:.4f}")
@@ -475,8 +486,18 @@ def main():
 
     # ---- 保存指标 ----
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    result_prefix = f"{model_name}_{args.split}_{timestamp}"
-    metrics_file = os.path.join(args.output_dir, f"{result_prefix}_metrics.json")
+    result_subdir = os.path.join(
+        args.output_dir, f"{model_name}_{args.split}_{timestamp}"
+    )
+    os.makedirs(result_subdir, exist_ok=True)
+
+    metrics_file = os.path.join(result_subdir, "metrics.json")
+    decision_per_class_output = {}
+    for cls, info in metrics["decision_per_class"].items():
+        decision_per_class_output[cls] = {
+            "accuracy": round(info["accuracy"], 4),
+            "count": info["count"],
+        }
     metrics_output = {
         "model": args.model_path,
         "split": args.split,
@@ -492,6 +513,7 @@ def main():
         "result_metrics": {
             "decision": {
                 "accuracy": round(metrics["decision_accuracy"], 4),
+                "per_class": decision_per_class_output,
             },
             "charges": {
                 "precision": round(metrics["charges_precision"], 4),
@@ -504,21 +526,31 @@ def main():
         json.dump(metrics_output, f, ensure_ascii=False, indent=2)
     logger.info(f"指标已保存: {metrics_file}")
 
-    # 保存详细预测（格式化 JSON）
-    details_file = os.path.join(args.output_dir, f"{result_prefix}_details.json")
-    details = []
+    # 构建详细预测并按决定类型分组保存
+    details_prosecute = []   # 起诉
+    details_no_prosecute = []  # 不起诉（相对不起诉、法定不起诉、存疑不起诉）
     for i in range(len(dataset)):
         record = completed[i]
-        details.append({
+        entry = {
             "index": record["index"],
             "id": record["id"],
             "prediction": record["prediction"],
             "reference": record["reference"],
             "raw_output": record["raw_output"],
-        })
-    with open(details_file, "w", encoding="utf-8") as f:
-        json.dump(details, f, ensure_ascii=False, indent=2)
-    logger.info(f"详细结果已保存: {details_file}")
+        }
+        if record["reference"]["decision"] == "起诉":
+            details_prosecute.append(entry)
+        else:
+            details_no_prosecute.append(entry)
+
+    for filename, data in [
+        ("details_起诉.json", details_prosecute),
+        ("details_不起诉.json", details_no_prosecute),
+    ]:
+        filepath = os.path.join(result_subdir, filename)
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        logger.info(f"详细结果已保存: {filepath} ({len(data)} 条)")
 
     # 清理断点文件
     if os.path.exists(checkpoint_file):

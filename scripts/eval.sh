@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # ---- 参数配置（直接在此修改） ----
-MODEL_PATH="models/Qwen3-0.6B"
+MODEL_PATH="models/Qwen3-4B"
 DATA_PATH="data/pdp25k"
 SPLIT="ood"
 MAX_MODEL_LEN=4096
