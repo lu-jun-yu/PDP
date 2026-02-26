@@ -49,9 +49,17 @@ logger = logging.getLogger(__name__)
 #  输出解析
 # ============================================================
 
+def _strip_think_block(text: str) -> str:
+    """去除 <think>...</think> 块，返回剩余内容。"""
+    think_end = text.find("</think>")
+    if think_end != -1:
+        return text[think_end + len("</think>"):].strip()
+    return text.strip()
+
+
 def parse_answer(text: str) -> dict:
     """
-    从模型输出中解析 <answer>...</answer> 块，提取结构化字段。
+    从模型输出中解析结构化字段（去除 <think> 块后解析）。
 
     返回:
         {
@@ -70,13 +78,7 @@ def parse_answer(text: str) -> dict:
         "charges": [],
     }
 
-    # 提取 <answer> 块
-    answer_match = re.search(r"<answer>(.*?)</answer>", text, re.DOTALL)
-    if not answer_match:
-        logger.warning("未找到 <answer> 标签，尝试全文解析")
-        answer_block = text
-    else:
-        answer_block = answer_match.group(1)
+    answer_block = _strip_think_block(text)
 
     # --- 适用法条 ---
     articles_section = re.search(
@@ -107,7 +109,7 @@ def parse_answer(text: str) -> dict:
 
     # --- 最终结论 ---
     conclusion_section = re.search(
-        r"【最终结论】(.*?)(?=</answer>|$)", answer_block, re.DOTALL
+        r"【最终结论】(.*?)$", answer_block, re.DOTALL
     )
     if conclusion_section:
         section_text = conclusion_section.group(1)

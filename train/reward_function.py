@@ -45,8 +45,16 @@ def _get_content(completion) -> str:
     return str(completion)
 
 
+def _strip_think_block(text: str) -> str:
+    """去除 <think>...</think> 块，返回剩余内容。"""
+    think_end = text.find("</think>")
+    if think_end != -1:
+        return text[think_end + len("</think>"):].strip()
+    return text.strip()
+
+
 def _parse_answer(text: str) -> dict:
-    """从模型输出中解析 <answer> 块，与 eval/evaluate.py 逻辑一致。"""
+    """从模型输出中解析结构化字段（去除 <think> 块后解析）。"""
     result = {
         "relevant_articles_cl": [],
         "relevant_articles_cpl": [],
@@ -55,8 +63,7 @@ def _parse_answer(text: str) -> dict:
         "charges": [],
     }
 
-    answer_match = re.search(r"<answer>(.*?)</answer>", text, re.DOTALL)
-    answer_block = answer_match.group(1) if answer_match else text
+    answer_block = _strip_think_block(text)
 
     # 适用法条
     sec = re.search(r"【适用法条】(.*?)(?=【审查分析】|【最终结论】|$)", answer_block, re.DOTALL)
@@ -72,7 +79,7 @@ def _parse_answer(text: str) -> dict:
             result["relevant_articles_cpr"] = _split_articles(cpr.group(1).strip())
 
     # 最终结论
-    sec = re.search(r"【最终结论】(.*?)(?=</answer>|$)", answer_block, re.DOTALL)
+    sec = re.search(r"【最终结论】(.*?)$", answer_block, re.DOTALL)
     if sec:
         dec = re.search(r"决定[：:]\s*(.*?)(?:\n|$)", sec.group(1))
         if dec:
@@ -107,12 +114,10 @@ _ARTICLE_PAT = r"(第[零一二三四五六七八九十百千\d]+条(?:第[零�
 
 def _extract_cited_articles(text: str) -> set:
     """从【审查分析】段落正则提取引用的法条，返回带前缀的混合集合。"""
-    answer_match = re.search(r"<answer>(.*?)</answer>", text, re.DOTALL)
-    if not answer_match:
-        return set()
+    answer_block = _strip_think_block(text)
 
     analysis = re.search(
-        r"【审查分析】(.*?)(?=【最终结论】|$)", answer_match.group(1), re.DOTALL
+        r"【审查分析】(.*?)(?=【最终结论】|$)", answer_block, re.DOTALL
     )
     if not analysis:
         return set()
@@ -133,24 +138,16 @@ def _extract_cited_articles(text: str) -> set:
 # ============================================================
 
 def _check_format(text: str) -> bool:
-    """检查输出是否符合预定格式：CoT + <answer> 内三个段落。"""
-    answer_match = re.search(r"<answer>(.*?)</answer>", text, re.DOTALL)
-    if not answer_match:
-        return False
-
-    # <answer> 前必须有 CoT 文本
-    if not text[: text.index("<answer>")].strip():
-        return False
-
-    block = answer_match.group(1)
+    """检查输出是否符合预定格式：<think> 推理 + 三个结构化段落。"""
+    answer_block = _strip_think_block(text)
 
     # 三个段落标题
     for tag in ("【适用法条】", "【审查分析】", "【最终结论】"):
-        if tag not in block:
+        if tag not in answer_block:
             return False
 
     # 适用法条须至少包含一种法律的法条
-    art_sec = re.search(r"【适用法条】(.*?)【审查分析】", block, re.DOTALL)
+    art_sec = re.search(r"【适用法条】(.*?)【审查分析】", answer_block, re.DOTALL)
     if not art_sec:
         return False
     has_any_law = (
@@ -162,7 +159,7 @@ def _check_format(text: str) -> bool:
         return False
 
     # 最终结论须包含决定和罪名
-    con_sec = re.search(r"【最终结论】(.*)", block, re.DOTALL)
+    con_sec = re.search(r"【最终结论】(.*)", answer_block, re.DOTALL)
     if not con_sec:
         return False
     if not re.search(r"决定[：:]", con_sec.group(1)):
