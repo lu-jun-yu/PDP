@@ -14,6 +14,8 @@ Usage:
     python eval/evaluate.py
     python eval/evaluate.py --split ood
     python eval/evaluate.py --split test --model-path models/Qwen3-0.6B
+    python eval/evaluate.py --batch-size 500          # 分批推理，支持断点续推
+    python eval/evaluate.py --no-resume               # 忽略断点，从头评估
 """
 
 import argparse
@@ -278,6 +280,17 @@ def main():
         default="results",
         help="结果输出目录 (default: results)",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=0,
+        help="分批推理的批次大小，0 表示一次性推理所有样本 (default: 0)",
+    )
+    parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="不使用断点续推，从头开始评估",
+    )
     args = parser.parse_args()
 
     # ---- 加载数据 ----
@@ -291,76 +304,145 @@ def main():
 
     logger.info(f"评估样本数: {len(dataset)}")
 
-    # ---- 构建提示 ----
-    logger.info("构建提示词...")
-    conversations = []
-    for sample in dataset:
-        messages = build_messages(
-            person_info=sample["person_info"],
-            procedure=sample["procedure"],
-            fact=sample["fact"],
+    # ---- 断点续推 ----
+    os.makedirs(args.output_dir, exist_ok=True)
+    model_name = Path(args.model_path).name
+    checkpoint_file = os.path.join(
+        args.output_dir, f"{model_name}_{args.split}_details.jsonl"
+    )
+
+    completed = {}  # index -> record
+    if not args.no_resume and os.path.exists(checkpoint_file):
+        logger.info(f"检测到断点文件: {checkpoint_file}")
+        with open(checkpoint_file, "r", encoding="utf-8") as f:
+            for line_no, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                    completed[record["index"]] = record
+                except (json.JSONDecodeError, KeyError):
+                    logger.warning(f"断点文件第 {line_no} 行解析失败，跳过")
+        logger.info(f"从断点恢复: 已完成 {len(completed)}/{len(dataset)} 个样本")
+    elif args.no_resume and os.path.exists(checkpoint_file):
+        os.remove(checkpoint_file)
+        logger.info("已删除旧断点文件，从头开始评估")
+
+    # 找出未完成的样本索引
+    remaining_indices = [i for i in range(len(dataset)) if i not in completed]
+
+    if not remaining_indices:
+        logger.info("所有样本已完成推理，直接计算指标")
+    else:
+        logger.info(f"待推理样本数: {len(remaining_indices)}")
+
+        # ---- 构建提示 ----
+        logger.info("构建提示词...")
+        conversations = []
+        for i in remaining_indices:
+            sample = dataset[i]
+            messages = build_messages(
+                person_info=sample["person_info"],
+                procedure=sample["procedure"],
+                fact=sample["fact"],
+            )
+            conversations.append(messages)
+
+        # ---- 加载模型 ----
+        logger.info(f"加载模型: {args.model_path}")
+        llm = LLM(
+            model=args.model_path,
+            tensor_parallel_size=args.tensor_parallel_size,
+            max_model_len=args.max_model_len,
+            gpu_memory_utilization=args.gpu_memory_utilization,
+            trust_remote_code=True,
         )
-        conversations.append(messages)
 
-    # ---- 加载模型 ----
-    logger.info(f"加载模型: {args.model_path}")
-    llm = LLM(
-        model=args.model_path,
-        tensor_parallel_size=args.tensor_parallel_size,
-        max_model_len=args.max_model_len,
-        gpu_memory_utilization=args.gpu_memory_utilization,
-        trust_remote_code=True,
-    )
+        sampling_params = SamplingParams(
+            temperature=args.temperature,
+            max_tokens=args.max_tokens,
+        )
 
-    sampling_params = SamplingParams(
-        temperature=args.temperature,
-        max_tokens=args.max_tokens,
-    )
+        # ---- 分批推理 + 断点保存 ----
+        batch_size = args.batch_size if args.batch_size > 0 else len(conversations)
+        num_batches = (len(conversations) + batch_size - 1) // batch_size
+        logger.info(
+            f"开始推理... (共 {num_batches} 个批次, "
+            f"batch_size={'all' if args.batch_size == 0 else batch_size})"
+        )
+        start_time = time.time()
+        new_count = 0
 
-    # ---- 批量推理 ----
-    logger.info("开始批量推理...")
-    start_time = time.time()
+        for batch_idx in range(num_batches):
+            batch_start = batch_idx * batch_size
+            batch_end = min(batch_start + batch_size, len(conversations))
+            batch_conversations = conversations[batch_start:batch_end]
+            batch_indices = remaining_indices[batch_start:batch_end]
 
-    outputs = llm.chat(
-        messages=conversations,
-        sampling_params=sampling_params,
-    )
+            if num_batches > 1:
+                logger.info(
+                    f"批次 {batch_idx + 1}/{num_batches}: "
+                    f"样本 {batch_start}~{batch_end - 1} ({len(batch_conversations)} 个)"
+                )
 
-    elapsed = time.time() - start_time
-    logger.info(f"推理完成，耗时 {elapsed:.1f}s ({len(dataset) / elapsed:.1f} samples/s)")
+            outputs = llm.chat(
+                messages=batch_conversations,
+                sampling_params=sampling_params,
+            )
 
-    # ---- 解析预测结果 ----
-    logger.info("解析模型输出...")
+            # 解析并追加保存到断点文件
+            with open(checkpoint_file, "a", encoding="utf-8") as f:
+                for j, output in enumerate(outputs):
+                    idx = batch_indices[j]
+                    generated_text = output.outputs[0].text
+                    parsed = parse_answer(generated_text)
+                    sample = dataset[idx]
+                    ref = {
+                        "relevant_articles_cl": list(sample["relevant_articles_cl"]),
+                        "relevant_articles_cpl": list(sample["relevant_articles_cpl"]),
+                        "relevant_articles_cpr": list(sample["relevant_articles_cpr"]),
+                        "decision": sample["decision"],
+                        "charges": list(sample["charges"]),
+                    }
+                    record = {
+                        "index": idx,
+                        "id": sample["id"],
+                        "prediction": parsed,
+                        "reference": ref,
+                        "raw_output": generated_text,
+                    }
+                    completed[idx] = record
+                    f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+            new_count += len(batch_conversations)
+            elapsed = time.time() - start_time
+            logger.info(
+                f"进度: {len(completed)}/{len(dataset)} "
+                f"(本次新增 {new_count}, 耗时 {elapsed:.1f}s, "
+                f"{new_count / elapsed:.1f} samples/s)"
+            )
+
+    # ---- 汇总结果 ----
+    logger.info("汇总预测结果...")
     predictions = []
-    raw_outputs = []
+    references = []
     parse_fail_count = 0
 
-    for output in outputs:
-        generated_text = output.outputs[0].text
-        raw_outputs.append(generated_text)
-
-        parsed = parse_answer(generated_text)
-        predictions.append(parsed)
-
-        # 检查解析完整性
-        if not parsed["decision"]:
+    for i in range(len(dataset)):
+        if i not in completed:
+            logger.error(f"样本 {i} 缺失，请使用 --no-resume 重新评估")
+            sys.exit(1)
+        record = completed[i]
+        predictions.append(record["prediction"])
+        references.append(record["reference"])
+        if not record["prediction"]["decision"]:
             parse_fail_count += 1
 
     if parse_fail_count > 0:
         logger.warning(
             f"有 {parse_fail_count}/{len(predictions)} 个样本未成功解析出决定字段"
         )
-
-    # ---- 构建参考答案 ----
-    references = []
-    for sample in dataset:
-        references.append({
-            "relevant_articles_cl": list(sample["relevant_articles_cl"]),
-            "relevant_articles_cpl": list(sample["relevant_articles_cpl"]),
-            "relevant_articles_cpr": list(sample["relevant_articles_cpr"]),
-            "decision": sample["decision"],
-            "charges": list(sample["charges"]),
-        })
 
     # ---- 计算指标 ----
     logger.info("计算评估指标...")
@@ -389,20 +471,14 @@ def main():
     print(f"\n  解析失败率: {parse_fail_count}/{len(predictions)}")
     print("=" * 60)
 
-    # ---- 保存结果 ----
-    os.makedirs(args.output_dir, exist_ok=True)
-
-    model_name = Path(args.model_path).name
+    # ---- 保存指标 ----
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     result_prefix = f"{model_name}_{args.split}_{timestamp}"
-
-    # 保存指标
     metrics_file = os.path.join(args.output_dir, f"{result_prefix}_metrics.json")
     metrics_output = {
         "model": args.model_path,
         "split": args.split,
         "num_samples": len(dataset),
-        "elapsed_seconds": round(elapsed, 1),
         "parse_fail_count": parse_fail_count,
         "process_metrics": {
             "articles": {
@@ -425,22 +501,7 @@ def main():
     with open(metrics_file, "w", encoding="utf-8") as f:
         json.dump(metrics_output, f, ensure_ascii=False, indent=2)
     logger.info(f"指标已保存: {metrics_file}")
-
-    # 保存详细预测
-    details_file = os.path.join(args.output_dir, f"{result_prefix}_details.jsonl")
-    with open(details_file, "w", encoding="utf-8") as f:
-        for i, (pred, ref, raw) in enumerate(
-            zip(predictions, references, raw_outputs)
-        ):
-            record = {
-                "index": i,
-                "id": dataset[i]["id"],
-                "prediction": pred,
-                "reference": ref,
-                "raw_output": raw,
-            }
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
-    logger.info(f"详细结果已保存: {details_file}")
+    logger.info(f"详细结果: {checkpoint_file}")
 
 
 if __name__ == "__main__":

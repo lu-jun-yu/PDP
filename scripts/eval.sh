@@ -16,6 +16,7 @@ TEMPERATURE=0.0
 TP_SIZE=1                  # 张量并行数
 GPU_UTIL=0.9
 OUTPUT_DIR="results"
+BATCH_SIZE=500             # 分批推理批次大小，0 表示一次性全部推理
 
 # ---- 运行评估 ----
 python eval/evaluate.py \
@@ -27,4 +28,5 @@ python eval/evaluate.py \
     --temperature "$TEMPERATURE" \
     --tensor-parallel-size "$TP_SIZE" \
     --gpu-memory-utilization "$GPU_UTIL" \
-    --output-dir "$OUTPUT_DIR"
+    --output-dir "$OUTPUT_DIR" \
+    --batch-size "$BATCH_SIZE"
