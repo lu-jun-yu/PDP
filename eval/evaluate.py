@@ -308,7 +308,7 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     model_name = Path(args.model_path).name
     checkpoint_file = os.path.join(
-        args.output_dir, f"{model_name}_{args.split}_details.jsonl"
+        args.output_dir, f"{model_name}_{args.split}_checkpoint.jsonl"
     )
 
     completed = {}  # index -> record
@@ -501,7 +501,27 @@ def main():
     with open(metrics_file, "w", encoding="utf-8") as f:
         json.dump(metrics_output, f, ensure_ascii=False, indent=2)
     logger.info(f"指标已保存: {metrics_file}")
-    logger.info(f"详细结果: {checkpoint_file}")
+
+    # 保存详细预测（格式化 JSON）
+    details_file = os.path.join(args.output_dir, f"{result_prefix}_details.json")
+    details = []
+    for i in range(len(dataset)):
+        record = completed[i]
+        details.append({
+            "index": record["index"],
+            "id": record["id"],
+            "prediction": record["prediction"],
+            "reference": record["reference"],
+            "raw_output": record["raw_output"],
+        })
+    with open(details_file, "w", encoding="utf-8") as f:
+        json.dump(details, f, ensure_ascii=False, indent=2)
+    logger.info(f"详细结果已保存: {details_file}")
+
+    # 清理断点文件
+    if os.path.exists(checkpoint_file):
+        os.remove(checkpoint_file)
+        logger.info("断点文件已清理")
 
 
 if __name__ == "__main__":
