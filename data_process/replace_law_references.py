@@ -2,7 +2,7 @@
 数据处理脚本：替换法律条文引用中的数字前缀
 
 功能：
-1. 处理 data/pku_fabao 下的 train、test、ood 文件夹中的起诉、不起诉文件夹中的所有文件
+1. 处理 data/pku_fabao 下的 train、test 文件夹中的起诉、不起诉文件夹中的所有文件
 2. 将"《{数字}中华人民共和国刑事诉讼法》"替换为《中华人民共和国刑事诉讼法》
 3. 将"《{数字}中华人民共和国刑法》"替换为《中华人民共和国刑法》
 4. 将"《{数字}人民检察院刑事诉讼规则》"替换为《人民检察院刑事诉讼规则》
@@ -27,7 +27,7 @@ except ImportError:
 BASE_DIR = "data/pku_fabao"
 
 # 需要处理的文件夹
-FOLDERS = ["train", "test", "ood"]
+FOLDERS = ["train", "test"]
 
 # 需要处理的子文件夹
 SUBFOLDERS = ["起诉", "不起诉"]

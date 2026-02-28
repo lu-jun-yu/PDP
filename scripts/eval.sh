@@ -9,7 +9,6 @@ set -euo pipefail
 # ---- 参数配置（直接在此修改） ----
 MODEL_PATH="models/Qwen3-4B"
 DATA_PATH="data/pdp25k"
-SPLIT="ood"
 MAX_MODEL_LEN=4096
 MAX_TOKENS=2048
 TEMPERATURE=0.0
@@ -22,7 +21,6 @@ BATCH_SIZE=500             # 分批推理批次大小，0 表示一次性全部�
 python eval/evaluate.py \
     --model-path "$MODEL_PATH" \
     --data-path "$DATA_PATH" \
-    --split "$SPLIT" \
     --max-model-len "$MAX_MODEL_LEN" \
     --max-tokens "$MAX_TOKENS" \
     --temperature "$TEMPERATURE" \

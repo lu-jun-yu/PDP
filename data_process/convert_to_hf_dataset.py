@@ -3,7 +3,7 @@
 """
 convert_to_hf_dataset.py
 
-将 PDP_dataset/ 下 train/test/ood 中的 dataset.json 转换为 HuggingFace datasets 格式，
+将 PDP_dataset/ 下 train/test 中的 dataset.json 转换为 HuggingFace datasets 格式，
 保存为 Arrow 格式的数据集，命名为 "pdp25k"。
 
 Usage:
@@ -77,7 +77,7 @@ def main():
     )
     parser.add_argument(
         "--input-dir", default="data/PDP_dataset",
-        help="输入目录，包含 train/test/ood 子目录 (default: data/PDP_dataset)",
+        help="输入目录，包含 train/test 子目录 (default: data/PDP_dataset)",
     )
     parser.add_argument(
         "--output-dir", default="data/pdp25k",
@@ -86,7 +86,7 @@ def main():
     args = parser.parse_args()
 
     splits = {}
-    split_names = ["train", "test", "ood"]
+    split_names = ["train", "test"]
 
     for split in split_names:
         json_path = os.path.join(args.input_dir, split, "dataset.json")

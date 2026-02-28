@@ -22,6 +22,13 @@ def _split_articles(raw: str) -> list[str]:
     return [a.strip() for a in items if a.strip()]
 
 
+def _split_charges(raw: str) -> list[str]:
+    """将罪名列表拆分，只在"罪"字后的分隔符处切分，避免误拆含"、"的罪名。"""
+    raw = raw.strip().rstrip("。.，,；;、")
+    parts = re.split(r"(?<=罪)[、，,;；]\s*", raw)
+    return [p.strip() for p in parts if p.strip()]
+
+
 def _set_prf1(pred: set, gold: set) -> tuple[float, float, float]:
     if not pred and not gold:
         return 1.0, 1.0, 1.0
@@ -88,7 +95,7 @@ def _parse_answer(text: str) -> dict:
         if chg:
             raw = chg.group(1).strip()
             if raw and raw != "无":
-                result["charges"] = _split_articles(raw)
+                result["charges"] = _split_charges(raw)
 
     return result
 

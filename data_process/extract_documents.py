@@ -870,7 +870,7 @@ UNKNOWN_WARNINGS = {
 
 
 def process_split(input_dir: str, output_path: str, split_name: str, limit: int = None):
-    """处理一个 split（train / test / ood）下的所有文书（不起诉决定书 + 起诉书）。
+    """处理一个 split（train / test）下的所有文书（不起诉决定书 + 起诉书）。
 
     对于解析失败或存在质量问题的文件，按原因分类保存到 unknown/ 子文件夹：
         unknown/empty/                  — 文件内容为空（核心段落全部缺失）
@@ -978,7 +978,7 @@ def main():
     )
     parser.add_argument(
         "--input-dir", default="data/pku_fabao",
-        help="输入根目录，包含 train/test/ood 子目录 (default: data/pku_fabao)",
+        help="输入根目录，包含 train/test 子目录 (default: data/pku_fabao)",
     )
     parser.add_argument(
         "--output-dir", default="data/PDP_dataset",
@@ -998,7 +998,7 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
 
     all_stats = {}
-    for split in ["train", "test", "ood"]:
+    for split in ["train", "test"]:
         in_dir = os.path.join(args.input_dir, split)
         out_path = os.path.join(args.output_dir, split, "dataset.json")
         _, stats = process_split(in_dir, out_path, split, limit=args.limit)

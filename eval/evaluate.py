@@ -12,8 +12,7 @@ eval/evaluate.py
 
 Usage:
     python eval/evaluate.py
-    python eval/evaluate.py --split ood
-    python eval/evaluate.py --split test --model-path models/Qwen3-0.6B
+    python eval/evaluate.py --model-path models/Qwen3-0.6B
     python eval/evaluate.py --batch-size 500          # 分批推理，支持断点续推
     python eval/evaluate.py --no-resume               # 忽略断点，从头评估
 """
@@ -124,7 +123,7 @@ def parse_answer(text: str) -> dict:
         if charges_match:
             raw = charges_match.group(1).strip()
             if raw and raw != "无":
-                result["charges"] = _split_items(raw)
+                result["charges"] = _split_charges(raw)
 
     return result
 
@@ -139,6 +138,13 @@ def _split_items(raw: str) -> list[str]:
     """通用分隔：按 '、' '，' ',' 拆分。"""
     items = re.split(r"[、，,;；]", raw)
     return [a.strip() for a in items if a.strip()]
+
+
+def _split_charges(raw: str) -> list[str]:
+    """将罪名列表拆分，只在"罪"字后的分隔符处切分，避免误拆含"、"的罪名。"""
+    raw = raw.strip().rstrip("。.，,；;、")
+    parts = re.split(r"(?<=罪)[、，,;；]\s*", raw)
+    return [p.strip() for p in parts if p.strip()]
 
 
 # ============================================================
@@ -251,12 +257,6 @@ def main():
         help="HuggingFace 数据集路径 (default: data/pdp25k)",
     )
     parser.add_argument(
-        "--split",
-        default="test",
-        choices=["test", "ood"],
-        help="评估的数据集 split (default: test)",
-    )
-    parser.add_argument(
         "--max-model-len",
         type=int,
         default=4096,
@@ -305,13 +305,13 @@ def main():
     args = parser.parse_args()
 
     # ---- 加载数据 ----
-    logger.info(f"加载数据集: {args.data_path} [{args.split}]")
+    logger.info(f"加载数据集: {args.data_path} [test]")
     try:
         dataset_dict = load_from_disk(args.data_path)
     except FileNotFoundError:
         from datasets import load_dataset
         dataset_dict = load_dataset(args.data_path)
-    dataset = dataset_dict[args.split]
+    dataset = dataset_dict["test"]
 
     logger.info(f"评估样本数: {len(dataset)}")
 
@@ -319,7 +319,7 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     model_name = Path(args.model_path).name
     checkpoint_file = os.path.join(
-        args.output_dir, f"{model_name}_{args.split}_checkpoint.jsonl"
+        args.output_dir, f"{model_name}_test_checkpoint.jsonl"
     )
 
     completed = {}  # index -> record
@@ -461,7 +461,7 @@ def main():
 
     # ---- 输出结果 ----
     print("\n" + "=" * 60)
-    print(f"  PDP 评估结果 — {args.split} split ({len(dataset)} samples)")
+    print(f"  PDP 评估结果 — test split ({len(dataset)} samples)")
     print(f"  模型: {args.model_path}")
     print("=" * 60)
 
@@ -487,7 +487,7 @@ def main():
     # ---- 保存指标 ----
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     result_subdir = os.path.join(
-        args.output_dir, f"{model_name}_{args.split}_{timestamp}"
+        args.output_dir, f"{model_name}_test_{timestamp}"
     )
     os.makedirs(result_subdir, exist_ok=True)
 
@@ -500,7 +500,6 @@ def main():
         }
     metrics_output = {
         "model": args.model_path,
-        "split": args.split,
         "num_samples": len(dataset),
         "parse_fail_count": parse_fail_count,
         "process_metrics": {
