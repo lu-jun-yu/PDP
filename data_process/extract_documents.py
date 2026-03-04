@@ -13,10 +13,8 @@ extract_documents.py
     "person_info": "某人XXX...",
     "procedure": "本案由XXX...",
     "fact": "...",
-    "relevant_articles_cl": ["第XXX条"],
-    "relevant_articles_cpl": ["第XXX条第X款"],
-    "relevant_articles_cpr": ["第XXX条"],
-    "decision": "相对不起诉" | "法定不起诉" | "存疑不起诉" | "起诉",
+    "relevant_articles": ["cl:第XXX条", "cpl:第XXX条第X款", "cpr:第XXX条"],
+    "decision": "起诉（情节严重）" | "起诉（情节轻微）" | "相对不起诉" | "法定不起诉" | "存疑不起诉",
     "charges": ["XXX罪"],
     "raw_reasoning_and_decision": "本院认为，..."
 }
@@ -397,64 +395,6 @@ def classify_paragraphs(body: str, doc_type: str = "non_prosecution") -> dict:
     return {k: "\n".join(v).strip() for k, v in sections.items()}
 
 
-def _recover_unmarked_fact(sections: dict, doc_type: str):
-    """处理无明确事实标记的文书：从 procedure 末尾拆出 fact 段。
-
-    当 fact 缺失且 procedure 存在时触发（不再要求 evidence 也存在）。
-    在 procedure 文本中找到最后一个"程序结束"标记，将其后的内容拆为 fact。
-    """
-    if "fact" in sections or "procedure" not in sections:
-        return
-
-    proc_text = sections["procedure"]
-    proc_end_pats = [
-        r"审查了全部案件材料[。.]",
-        r"现已审查终结[。.]",
-        r"向本院移送(?:审查)?起诉[。.]",
-        r"听取了.*?(?:律师|辩护人|值班律师|法律援助)的意见[。.]",
-    ]
-    latest_end = -1
-    for pat in proc_end_pats:
-        for m in re.finditer(pat, proc_text):
-            if m.end() > latest_end:
-                latest_end = m.end()
-
-    if latest_end > 0:
-        candidate_fact = proc_text[latest_end:].strip()
-        if candidate_fact:
-            sections["procedure"] = proc_text[:latest_end].strip()
-            sections["fact"] = candidate_fact
-
-
-def _split_fact_reasoning(sections: dict):
-    """处理事实段中嵌入推理内容的情况：从 fact 文本中拆出 reasoning。
-
-    当事实和推理在同一段落中（如"移送起诉认定…经本院审查并退回补充侦查，
-    本院仍然认为…证据不足"），fact 关键词先匹配导致 reasoning 被吞入 fact。
-    仅当 reasoning 缺失且 fact 存在时触发。
-    """
-    if "reasoning" in sections or "fact" not in sections:
-        return
-
-    fact_text = sections["fact"]
-    reasoning_pats = [
-        r"本院(?:审查|仍然?)?认为",
-        r"本院经审查",
-        r"经(?:本院|依法)审查并.*?退回(?:补充)?侦查",
-        r"经本院审查(?!查明)",
-        r"综上",
-    ]
-    earliest_pos = len(fact_text)
-    for pat in reasoning_pats:
-        m = re.search(pat, fact_text)
-        if m and m.start() < earliest_pos:
-            earliest_pos = m.start()
-
-    if earliest_pos < len(fact_text):
-        sections["reasoning"] = fact_text[earliest_pos:].strip()
-        sections["fact"] = fact_text[:earliest_pos].strip()
-
-
 # ============================================================================
 #  标签提取
 # ============================================================================
@@ -588,6 +528,32 @@ def detect_decision_type(reasoning: str, body: str, filename: str = "") -> str |
     return None
 
 
+def detect_prosecution_severity(reasoning: str) -> str:
+    """判定起诉案件的情节严重程度。
+
+    检测推理段中是否存在常见从轻/减轻情节关键词（与相对不起诉案件
+    共享的"情节轻微"特征），以此区分起诉中的边界案件。
+
+    Returns:
+        '起诉（情节轻微）' | '起诉（情节严重）'
+    """
+    minor_keywords = [
+        "犯罪情节轻微",
+        "犯罪情节较轻",
+        "情节轻微",
+        "情节较轻",
+        "自首",
+        "认罪认罚",
+        "初犯",
+        "偶犯",
+    ]
+    if any(kw in reasoning for kw in minor_keywords):
+        return "起诉（情节轻微）"
+    if re.search(r"情节(?:较为)?(?:轻微|较轻)", reasoning):
+        return "起诉（情节轻微）"
+    return "起诉（情节严重）"
+
+
 def extract_charges(reasoning: str, procedure: str = "", body: str = "") -> list:
     """从推理 / 程序 / 正文标题中提取罪名列表。"""
     charges = []
@@ -699,18 +665,18 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
     procuratorate = extract_procuratorate(body)
     province = extract_province(procuratorate, body)
 
-    # ----- 确保句号后有换行，便于段落切分 -----
-    body = re.sub(r"。(?!\n)", "。\n", body)
-
     # ----- 分段 -----
     sections = classify_paragraphs(body, doc_type)
-    _recover_unmarked_fact(sections, doc_type)
-    _split_fact_reasoning(sections)
 
     input_person = sections.get("person", "")
     input_procedure = sections.get("procedure", "")
     input_fact = sections.get("fact", "")
     reasoning = sections.get("reasoning", "")
+    # 去除推理段末尾的签署信息（如"XXX人民检察院\n2023年7月7日"）
+    reasoning = re.sub(
+        r"\s*[\u4e00-\u9fa5]{2,30}人民检察院\s*(?:[（(]院印[）)]\s*)?\d{4}年\d{1,2}月\d{1,2}日\s*$",
+        "", reasoning
+    ).strip()
 
     # ----- 去掉事实段落的引导语 -----
     input_fact = re.sub(
@@ -748,8 +714,8 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
     cl_articles, cpl_articles, cpr_articles = extract_articles(reasoning)
 
     if doc_type == "prosecution":
-        decision = "起诉"
         charges = extract_charges(reasoning, input_procedure, body)
+        decision = detect_prosecution_severity(reasoning)
     else:
         decision = detect_decision_type(reasoning, body, filename)
         if decision == "相对不起诉":
@@ -829,9 +795,11 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
         "person_info": input_person,
         "procedure": input_procedure,
         "fact": input_fact,
-        "relevant_articles_cl": cl_articles,
-        "relevant_articles_cpl": cpl_articles,
-        "relevant_articles_cpr": cpr_articles,
+        "relevant_articles": (
+            [f"cl:{a}" for a in cl_articles]
+            + [f"cpl:{a}" for a in cpl_articles]
+            + [f"cpr:{a}" for a in cpr_articles]
+        ),
         "decision": decision,
         "charges": charges,
         "raw_reasoning_and_decision": reasoning,
@@ -958,7 +926,7 @@ def process_split(input_dir: str, output_path: str, split_name: str, limit: int 
 
     # 日志
     logger.info(f"[{split_name}] 完成: 成功 {ok}, 未分类 {total_unknown}")
-    for dt in ["起诉", "相对不起诉", "法定不起诉", "存疑不起诉"]:
+    for dt in ["起诉（情节严重）", "起诉（情节轻微）", "相对不起诉", "法定不起诉", "存疑不起诉"]:
         logger.info(f"  {dt}: {stats.get(dt, 0)}")
     if total_unknown > 0:
         logger.info(f"  未分类文件已保存至: {unknown_dir}")
@@ -1012,7 +980,7 @@ def main():
         ok = sum(v for k, v in stats.items() if not k.startswith("_"))
         unknown = stats.get("_unknown", 0)
         print(f"\n  [{split}]  成功 {ok}  |  未分类 {unknown}")
-        for dt in ["起诉", "相对不起诉", "法定不起诉", "存疑不起诉"]:
+        for dt in ["起诉（情节严重）", "起诉（情节轻微）", "相对不起诉", "法定不起诉", "存疑不起诉"]:
             print(f"      {dt}: {stats.get(dt, 0)}")
     print("=" * 65)
 

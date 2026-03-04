@@ -6,8 +6,8 @@ train/reward_function.py
 GRPO 训练的奖励函数，共四项：
   1. format_reward   — 格式匹配奖励 (0 / 2)
   2. decision_reward  — 结果奖励: decision 正确与否 (0 / 2)
-  3. process_reward   — 过程奖励: charges_score + 混合法条 F1
-  4. citation_reward  — 法条引用一致性奖励: 审查分析引用 vs 适用法条声明 的混合 F1
+  3. process_reward   — 过程奖励: charges_score + 法条 F1
+  4. citation_reward  — 法条引用一致性奖励: 审查分析引用 vs 适用法条声明 的 F1
 """
 
 import re
@@ -63,9 +63,7 @@ def _strip_think_block(text: str) -> str:
 def _parse_answer(text: str) -> dict:
     """从模型输出中解析结构化字段（去除 <think> 块后解析）。"""
     result = {
-        "relevant_articles_cl": [],
-        "relevant_articles_cpl": [],
-        "relevant_articles_cpr": [],
+        "relevant_articles": [],
         "decision": "",
         "charges": [],
     }
@@ -75,15 +73,17 @@ def _parse_answer(text: str) -> dict:
     # 适用法条
     sec = re.search(r"【适用法条】(.*?)(?=【审查分析】|【最终结论】|$)", answer_block, re.DOTALL)
     if sec:
+        articles = []
         cl = re.search(r"刑法[：:](.*?)(?:\n|$)", sec.group(1))
         if cl:
-            result["relevant_articles_cl"] = _split_articles(cl.group(1).strip())
+            articles += [f"cl:{a}" for a in _split_articles(cl.group(1).strip())]
         cpl = re.search(r"刑事诉讼法[：:](.*?)(?:\n|$)", sec.group(1))
         if cpl:
-            result["relevant_articles_cpl"] = _split_articles(cpl.group(1).strip())
+            articles += [f"cpl:{a}" for a in _split_articles(cpl.group(1).strip())]
         cpr = re.search(r"刑事诉讼规则[：:](.*?)(?:\n|$)", sec.group(1))
         if cpr:
-            result["relevant_articles_cpr"] = _split_articles(cpr.group(1).strip())
+            articles += [f"cpr:{a}" for a in _split_articles(cpr.group(1).strip())]
+        result["relevant_articles"] = articles
 
     # 最终结论
     sec = re.search(r"【最终结论】(.*?)$", answer_block, re.DOTALL)
@@ -98,18 +98,6 @@ def _parse_answer(text: str) -> dict:
                 result["charges"] = _split_charges(raw)
 
     return result
-
-
-def _build_mixed_articles(cl: list, cpl: list, cpr: list) -> set:
-    """将各法律的条文加前缀后合并为一个集合，避免不同法律的相同条号冲突。"""
-    mixed = set()
-    for a in cl:
-        mixed.add(f"cl:{a}")
-    for a in cpl:
-        mixed.add(f"cpl:{a}")
-    for a in cpr:
-        mixed.add(f"cpr:{a}")
-    return mixed
 
 
 # ============================================================
@@ -198,38 +186,29 @@ def decision_reward_func(completions, **kwargs) -> list[float]:
 
 def process_reward_func(completions, **kwargs) -> list[float]:
     """
-    过程奖励（0~2）：charges_score + 混合法条 F1。
+    过程奖励（0~2）：charges_score + 法条 F1。
 
-    将三类法条（刑法 / 刑诉法 / 刑事诉讼规则）加前缀后合并为一个集合，
-    计算一次 F1，无需分法律平均或动态分母。
-
-    charges：起诉/相对不起诉 → F1，法定/存疑不起诉 → 空=1 非空=0。
+    charges：起诉（情节严重/轻微）/相对不起诉 → F1，法定/存疑不起诉 → 空=1 非空=0。
     """
     ref_decisions = kwargs["decision"]
     ref_charges = kwargs["charges"]
-    ref_cl = kwargs["relevant_articles_cl"]
-    ref_cpl = kwargs["relevant_articles_cpl"]
-    ref_cpr = kwargs["relevant_articles_cpr"]
+    ref_articles = kwargs["relevant_articles"]
 
     rewards = []
-    for c, dec, g_chg, g_cl, g_cpl, g_cpr in zip(
-        completions, ref_decisions, ref_charges, ref_cl, ref_cpl, ref_cpr
+    for c, dec, g_chg, g_arts in zip(
+        completions, ref_decisions, ref_charges, ref_articles
     ):
         parsed = _parse_answer(_get_content(c))
 
         # --- charges ---
-        if dec in ("起诉", "相对不起诉"):
+        if dec in ("起诉（情节严重）", "起诉（情节轻微）", "相对不起诉"):
             _, _, s_chg = _set_prf1(set(parsed["charges"]), set(g_chg))
         else:
             s_chg = 1.0 if len(parsed["charges"]) == 0 else 0.0
 
-        # --- 混合法条 F1 ---
-        pred_arts = _build_mixed_articles(
-            parsed["relevant_articles_cl"],
-            parsed["relevant_articles_cpl"],
-            parsed["relevant_articles_cpr"],
-        )
-        gold_arts = _build_mixed_articles(g_cl, g_cpl, g_cpr)
+        # --- 法条 F1 ---
+        pred_arts = set(parsed["relevant_articles"])
+        gold_arts = set(g_arts)
         _, _, f1_arts = _set_prf1(pred_arts, gold_arts)
 
         rewards.append(s_chg + f1_arts)
@@ -249,11 +228,7 @@ def citation_reward_func(completions, **kwargs) -> list[float]:
         parsed = _parse_answer(text)
 
         cited = _extract_cited_articles(text)
-        declared = _build_mixed_articles(
-            parsed["relevant_articles_cl"],
-            parsed["relevant_articles_cpl"],
-            parsed["relevant_articles_cpr"],
-        )
+        declared = set(parsed["relevant_articles"])
         _, _, f1 = _set_prf1(cited, declared)
         rewards.append(f1)
 

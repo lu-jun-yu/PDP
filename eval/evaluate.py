@@ -5,8 +5,8 @@ eval/evaluate.py
 
 使用 vLLM 对 PDP 数据集进行评估。
 
-模型预测四个目标：
-  - relevant_articles (法条：刑法+刑诉法+刑事诉讼规则) — 过程评估
+模型预测三个目标：
+  - relevant_articles (法条，带前缀 cl:/cpl:/cpr:) — 过程评估
   - decision           (起诉决定)                       — 结果评估
   - charges            (罪名)                           — 结果评估
 
@@ -62,17 +62,13 @@ def parse_answer(text: str) -> dict:
 
     返回:
         {
-            "relevant_articles_cl": list[str],
-            "relevant_articles_cpl": list[str],
-            "relevant_articles_cpr": list[str],
+            "relevant_articles": list[str],   # 带前缀，如 "cl:第XXX条"
             "decision": str,
             "charges": list[str],
         }
     """
     result = {
-        "relevant_articles_cl": [],
-        "relevant_articles_cpl": [],
-        "relevant_articles_cpr": [],
+        "relevant_articles": [],
         "decision": "",
         "charges": [],
     }
@@ -87,24 +83,21 @@ def parse_answer(text: str) -> dict:
     )
     if articles_section:
         section_text = articles_section.group(1)
+        articles = []
 
-        # 刑法法条
         cl_match = re.search(r"刑法[：:](.*?)(?:\n|$)", section_text)
         if cl_match:
-            raw = cl_match.group(1).strip()
-            result["relevant_articles_cl"] = _split_articles(raw)
+            articles += [f"cl:{a}" for a in _split_articles(cl_match.group(1).strip())]
 
-        # 刑事诉讼法法条
         cpl_match = re.search(r"刑事诉讼法[：:](.*?)(?:\n|$)", section_text)
         if cpl_match:
-            raw = cpl_match.group(1).strip()
-            result["relevant_articles_cpl"] = _split_articles(raw)
+            articles += [f"cpl:{a}" for a in _split_articles(cpl_match.group(1).strip())]
 
-        # 刑事诉讼规则法条
         cpr_match = re.search(r"刑事诉讼规则[：:](.*?)(?:\n|$)", section_text)
         if cpr_match:
-            raw = cpr_match.group(1).strip()
-            result["relevant_articles_cpr"] = _split_articles(raw)
+            articles += [f"cpr:{a}" for a in _split_articles(cpr_match.group(1).strip())]
+
+        result["relevant_articles"] = articles
 
     # --- 最终结论 ---
     conclusion_section = re.search(
@@ -167,23 +160,11 @@ def set_precision_recall_f1(pred: set, gold: set) -> tuple[float, float, float]:
     return precision, recall, f1
 
 
-def _build_mixed_articles(cl: list, cpl: list, cpr: list) -> set:
-    """将各法律的条文加前缀后合并为一个集合，避免不同法律的相同条号冲突。"""
-    mixed = set()
-    for a in cl:
-        mixed.add(f"cl:{a}")
-    for a in cpl:
-        mixed.add(f"cpl:{a}")
-    for a in cpr:
-        mixed.add(f"cpr:{a}")
-    return mixed
-
-
 def compute_metrics(predictions: list[dict], references: list[dict]) -> dict:
     """
     计算所有评估指标。
 
-    过程评估 (relevant_articles): 混合法条 F1
+    过程评估 (relevant_articles): 法条 F1
     结果评估 (decision): Accuracy
     结果评估 (charges): Precision / Recall / F1
     """
@@ -192,20 +173,12 @@ def compute_metrics(predictions: list[dict], references: list[dict]) -> dict:
 
     for pred, ref in zip(predictions, references):
         # 判断参考答案的决定类型是否有罪名
-        has_charges = ref["decision"] in ("起诉", "相对不起诉")
+        has_charges = ref["decision"] in ("起诉（情节严重）", "起诉（情节轻微）", "相对不起诉")
 
-        # --- 过程评估：混合法条 F1（所有样本） ---
-        pred_mixed = _build_mixed_articles(
-            pred["relevant_articles_cl"],
-            pred["relevant_articles_cpl"],
-            pred["relevant_articles_cpr"],
-        )
-        gold_mixed = _build_mixed_articles(
-            ref["relevant_articles_cl"],
-            ref["relevant_articles_cpl"],
-            ref["relevant_articles_cpr"],
-        )
-        p, r, f = set_precision_recall_f1(pred_mixed, gold_mixed)
+        # --- 过程评估：法条 F1（所有样本） ---
+        pred_arts = set(pred["relevant_articles"])
+        gold_arts = set(ref["relevant_articles"])
+        p, r, f = set_precision_recall_f1(pred_arts, gold_arts)
         metrics["articles_precision"].append(p)
         metrics["articles_recall"].append(r)
         metrics["articles_f1"].append(f)
@@ -410,17 +383,19 @@ def main():
                     parsed = parse_answer(generated_text)
                     sample = dataset[idx]
                     ref = {
-                        "relevant_articles_cl": list(sample["relevant_articles_cl"]),
-                        "relevant_articles_cpl": list(sample["relevant_articles_cpl"]),
-                        "relevant_articles_cpr": list(sample["relevant_articles_cpr"]),
+                        "relevant_articles": list(sample["relevant_articles"]),
                         "decision": sample["decision"],
                         "charges": list(sample["charges"]),
                     }
                     record = {
                         "index": idx,
                         "id": sample["id"],
+                        "person_info": sample["person_info"],
+                        "procedure": sample["procedure"],
+                        "fact": sample["fact"],
                         "prediction": parsed,
                         "reference": ref,
+                        "raw_reasoning_and_decision": sample["raw_reasoning_and_decision"],
                         "raw_output": generated_text,
                     }
                     completed[idx] = record
@@ -525,28 +500,31 @@ def main():
         json.dump(metrics_output, f, ensure_ascii=False, indent=2)
     logger.info(f"指标已保存: {metrics_file}")
 
-    # 构建详细预测并按决定类型分组保存
-    details_prosecute = []   # 起诉
-    details_no_prosecute = []  # 不起诉（相对不起诉、法定不起诉、存疑不起诉）
+    # 构建详细预测并按 参考decision-预测decision 分组保存
+    details_groups = defaultdict(list)  # key -> list[entry]
     for i in range(len(dataset)):
         record = completed[i]
         entry = {
             "index": record["index"],
             "id": record["id"],
+            "person_info": record["person_info"],
+            "procedure": record["procedure"],
+            "fact": record["fact"],
             "prediction": record["prediction"],
             "reference": record["reference"],
+            "raw_reasoning_and_decision": record["raw_reasoning_and_decision"],
             "raw_output": record["raw_output"],
         }
-        if record["reference"]["decision"] == "起诉":
-            details_prosecute.append(entry)
+        ref_dec = record["reference"]["decision"]
+        pred_dec = record["prediction"]["decision"]
+        if pred_dec == ref_dec:
+            details_groups["正确"].append(entry)
         else:
-            details_no_prosecute.append(entry)
+            key = f"{ref_dec}_{pred_dec}"
+            details_groups[key].append(entry)
 
-    for filename, data in [
-        ("details_起诉.json", details_prosecute),
-        ("details_不起诉.json", details_no_prosecute),
-    ]:
-        filepath = os.path.join(result_subdir, filename)
+    for group_name, data in details_groups.items():
+        filepath = os.path.join(result_subdir, f"details_{group_name}.json")
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         logger.info(f"详细结果已保存: {filepath} ({len(data)} 条)")
