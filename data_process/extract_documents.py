@@ -218,33 +218,11 @@ def strip_metadata_lines(raw_text: str) -> str:
     return "\n".join(body_lines).strip()
 
 
-def remove_duplicate_content(body: str) -> str:
-    """部分文书内容被重复粘贴了两次（如奴某某案），只保留第一份。
-
-    策略：找日期行，如果日期后紧跟换行且新段落以 "被不起诉人"/"被告人" 开头，
-    则为重复。仅检查日期后的换行边界，避免误截断事实叙述中的连续文本。
-    """
-    # 检查后 2/3 部分的日期（完美重复时签署日期恰在 ~50% 处，用 1/3 避免漏掉）
-    threshold = len(body) // 3
-    date_positions = [m.end() for m in re.finditer(r"\d{4}年\d{1,2}月\d{1,2}日", body)
-                      if m.start() >= threshold]
-    for dp in date_positions:
-        remaining = body[dp:].strip()
-        # 去掉 (院印) 等尾注
-        remaining_clean = re.sub(r"^[（(]院印[）)]\s*", "", remaining)
-        # 必须以换行分隔，且新段落以 "被不起诉人"/"被告人" 开头才判定为重复
-        if remaining_clean and body[dp:].lstrip(" \t").startswith("\n"):
-            first_line = remaining_clean.split("\n")[0].strip()
-            if first_line.startswith("被不起诉人") or first_line.startswith("被告人"):
-                return body[:dp].strip()
-    return body
-
-
 # ============================================================================
 #  段落级分类
 # ============================================================================
 
-SECTION_ORDER = ["header", "person", "procedure", "fact", "evidence",
+SECTION_ORDER = ["header", "person", "procedure", "fact",
                  "reasoning", "end", "tail"]
 
 
@@ -275,24 +253,12 @@ def _detect_paragraph_section(para: str, current: str, doc_type: str):
         # 长段落：不 return，fall through 到后续 section 检测
 
     # ---- person → procedure ----
-    if cur_idx <= SECTION_ORDER.index("person"):
-        if "本案由" in stripped:
-            return "procedure"
-        # 新增1: "案由"起始 + "侦查终结"（"本案由"笔误/OCR漏字）
-        if re.match(r"案由", stripped) and "侦查终结" in stripped:
-            return "procedure"
-        # 新增2: 人称开头 + 紧跟"涉嫌"（无逗号间隔）+ "侦查终结"或"移送起诉"
-        #   匹配: "被不起诉人XXX涉嫌XXX罪一案，由XXX侦查终结..."
-        #   排除: "被不起诉人XXX，男，..."（名字后有逗号 → person段）
-        if re.match(
-            r"(?:被不起诉人|犯罪嫌疑人|被告人|被不起诉单位)"
-            r"[^，。；,;]{2,40}涉嫌",
-            stripped,
-        ) and re.search(r"侦查终结|移送(?:审查)?起诉", stripped):
+    if cur_idx == SECTION_ORDER.index("person"):
+        if stripped.startswith("本案由"):
             return "procedure"
 
-    # ---- procedure / person → fact ----
-    if cur_idx <= SECTION_ORDER.index("procedure"):
+    # ---- procedure / fact → fact ----
+    if cur_idx == SECTION_ORDER.index("procedure") or cur_idx == SECTION_ORDER.index("fact"):
         # 标准事实标记
         fact_pats = [
             r"经本院依法审查查明", r"经依法审查查明", r"现依法审查查明",
@@ -300,60 +266,48 @@ def _detect_paragraph_section(para: str, current: str, doc_type: str):
             r"经审查认定", r"检察机关认定", r"侦查机关认定的犯罪事实",
             r"公安机关认定的事实", r"审查认定事实", r"移送机关认定",
             r"起诉意见书认定[：:]",
-            # --- 补充模式 ---
-            r"本院依法审查查明",           # 缺"经"
-            r"经审查查明",                 # 缺"本院"/"依法"
-            r"经本院依法审查明",           # 笔误：缺第二个"查"
-            r"现查明[：:]",               # 存疑不起诉简短格式
-            r"经依法审查认定的犯罪事实",   # "犯罪事实"变体
-            r"移送审查起诉事实[：:]",      # "事实"代替"认定"
-            r"认定.{0,20}的?犯罪行为如下", # "认定XXX的犯罪行为如下"
-            # --- 新增模式 ---
-            r"经依法侦查查明",             # "侦查"代替"审查"
-            r"依法审查查明",               # 缺"经"和"本院"
-            r"依法侦查查明",               # 缺"经"，且用"侦查"
-            r"经我院(?:依法)?审查查明",    # "我院"代替"本院"
-            r"移送(?:审查)?起诉认定[：:]", # 移送起诉认定：
-            r"(?:公安局|公安分局|分局).{0,15}(?:移送(?:审查)?起诉)?认定[：:]",  # 具体机关名+认定
+            r"本院依法审查查明",
+            r"经审查查明",
+            r"经本院依法审查明",
+            r"现查明[：:]",
+            r"经依法审查认定的犯罪事实",
+            r"移送审查起诉事实[：:]",
+            r"认定.{0,20}的?犯罪行为如下",
+            r"经依法侦查查明",
+            r"依法审查查明",
+            r"依法侦查查明",
+            r"经我院(?:依法)?审查查明",
+            r".{0,30}移送(?:审查)?起诉认定",
+            r".{0,30}(?:公安局|公安分局|分局).{0,15}(?:移送(?:审查)?起诉)?认定[：:]",
         ]
         for pat in fact_pats:
-            if re.search(pat, stripped):
+            if re.match(pat, stripped):
                 return "fact"
-        # 存疑不起诉格式
-        if re.search(r"移送(?:审查)?起诉认定", stripped):
-            return "fact"
         # 起诉书结构化标题：独立行"犯罪事实"/"指控事实"/"案件事实"
         if stripped in ("犯罪事实", "指控事实", "案件事实"):
             return "fact"
 
-    # ---- fact → evidence ----
-    if cur_idx <= SECTION_ORDER.index("fact"):
-        if re.search(r"(?:认定)?上述(?:犯罪)?事实的?证据(?:如下|有)", stripped):
-            return "evidence"
-
     # ---- → reasoning ----
-    # 严格按序：只有已进入 fact 或 evidence 后才允许检测 reasoning，
+    # 严格按序：只有已进入 fact 后才允许检测 reasoning，
     # 防止从 person/procedure 直接跳到 reasoning 导致 fact 被跳过。
-    if SECTION_ORDER.index("fact") <= cur_idx <= SECTION_ORDER.index("evidence"):
-        if re.search(r"本院(?:审查|仍然?)?认为", stripped):
+    # 注意：所有模式使用 re.match（段落开头），避免在长事实段中间误触发。
+    if cur_idx == SECTION_ORDER.index("fact"):
+        if re.match(r"本院(?:审查|仍然?)?认为", stripped):
             return "reasoning"
-        if re.search(r"综上|经审查，|本院依据", stripped):
+        if re.match(r"经(?:本院|依法)审查(?:，)?认为|本院依据", stripped):
             return "reasoning"
         # "被不起诉人/被告人XXX的行为已触犯"
-        if re.search(r"(?:被不起诉人|被告人|犯罪嫌疑人).{0,50}的?行为(?:已)?触犯", stripped):
+        if re.match(r"(?:被不起诉人|被告人|犯罪嫌疑人).{0,50}的?行为(?:已)?触犯", stripped):
             return "reasoning"
         # "XXX实施了/触犯了《刑法》"
-        if re.search(r".{1,20}(?:实施|触犯)了?《中华人民共和国刑法》", stripped):
+        if re.match(r".{1,20}(?:实施|触犯)了?《中华人民共和国刑法》", stripped):
             return "reasoning"
         # 存疑不起诉：经审查并退回补充侦查
-        if re.search(r"经(?:本院|依法)审查并.*?退回(?:补充)?侦查", stripped):
-            return "reasoning"
-        # 宽泛匹配
-        if re.search(r"经本院审查(?!查明)", stripped):
+        if re.match(r"经(?:本院|依法)?审查.*?并.*?(?:退回)?.*?(?:补充)?(?:侦查|调查)", stripped):
             return "reasoning"
 
     # ---- → end ----
-    if cur_idx <= SECTION_ORDER.index("reasoning"):
+    if cur_idx == SECTION_ORDER.index("reasoning"):
         if doc_type == "prosecution":
             if stripped.startswith("此致"):
                 return "end"
@@ -363,8 +317,11 @@ def _detect_paragraph_section(para: str, current: str, doc_type: str):
             if re.match(r"被害人(?:的?(?:近亲属|法定代理人|家属))?如(?:果)?不服", stripped):
                 return "end"
 
-    # ---- end 之后 → tail ----
-    # tail 由状态机自动处理（end 之后的段落都归入 tail/end）
+        # 通用：签署机关（xxx检察院）或单独日期行
+        if re.match(r".{0,10}(?:人民检察院|检察院)\s*$", stripped):
+            return "end"
+        if re.match(r"\d{4}年\d{1,2}月\d{1,2}日\s*$", stripped):
+            return "end"
 
     return None
 
@@ -388,8 +345,11 @@ def classify_paragraphs(body: str, doc_type: str = "non_prosecution") -> dict:
         if detected is not None:
             new_idx = SECTION_ORDER.index(detected)
             cur_idx = SECTION_ORDER.index(current)
-            if new_idx >= cur_idx:
+            if new_idx > cur_idx:
                 current = detected
+            elif new_idx == cur_idx:
+                if detected == "fact" and current == "fact":
+                    sections["fact"] = []
         sections[current].append(para)
 
     return {k: "\n".join(v).strip() for k, v in sections.items()}
@@ -659,7 +619,6 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
 
     # ----- 正文 -----
     body = strip_metadata_lines(raw_text)
-    body = remove_duplicate_content(body)
 
     year = extract_year_from_date(body)
     procuratorate = extract_procuratorate(body)
@@ -669,14 +628,18 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
     sections = classify_paragraphs(body, doc_type)
 
     input_person = sections.get("person", "")
+    # 过滤无关角色信息（如辩护人、指定辩护人）
+    input_person = "\n".join(
+        line for line in input_person.split("\n")
+        if not re.match(r"\s*(?:指定)?辩护人", line)
+    ).strip()
     input_procedure = sections.get("procedure", "")
     input_fact = sections.get("fact", "")
     reasoning = sections.get("reasoning", "")
-    # 去除推理段末尾的签署信息（如"XXX人民检察院\n2023年7月7日"）
-    reasoning = re.sub(
-        r"\s*[\u4e00-\u9fa5]{2,30}人民检察院\s*(?:[（(]院印[）)]\s*)?\d{4}年\d{1,2}月\d{1,2}日\s*$",
-        "", reasoning
-    ).strip()
+    # 去除推理段末尾的签署信息（检察院名、院印、日期，可能出现任意组合）
+    reasoning = re.sub(r"\s*\d{4}年\d{1,2}月\d{1,2}日\s*$", "", reasoning).strip()
+    reasoning = re.sub(r"\s*[（(]院印[）)]\s*$", "", reasoning).strip()
+    reasoning = re.sub(r"\s*[\u4e00-\u9fa5]{2,30}人民检察院\s*$", "", reasoning).strip()
 
     # ----- 去掉事实段落的引导语 -----
     input_fact = re.sub(
@@ -749,42 +712,34 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
     elif "doc_type_mismatch" in warnings:
         pass
     else:
-        if doc_type == "non_prosecution" and decision is None:
-            warnings.append("unclassified_decision")
         if not input_person:
             warnings.append("missing_person")
-        if not input_procedure:
+        elif not input_procedure:
             warnings.append("missing_procedure")
-
-        # 死亡案件（如"犯罪嫌疑人XXX因病死亡"）：文书极短，
-        # 无独立事实段属正常情况，放宽 missing_fact
-        is_death_case = bool(re.search(
-            r"犯罪嫌疑人.{0,30}死亡", input_procedure
-        ))
-
-        if not input_fact and not is_death_case:
+        elif not input_fact:
             warnings.append("missing_fact")
-        if not reasoning:
+        elif not reasoning:
             warnings.append("missing_reasoning")
-        # 罪名检查：起诉书和相对不起诉都应包含罪名
-        if doc_type == "prosecution" or decision == "相对不起诉":
-            if not charges:
-                warnings.append("missing_charges")
-        # 事实段混入推理内容：检查 fact 中是否包含法律引用
-        if input_fact and re.search(
-            r"《(?:中华人民共和国)?(?:刑法|刑事诉讼法)》|《人民检察院刑事诉讼规则》",
-            input_fact,
-        ):
-            warnings.append("fact_contaminated")
+        else:
+            if decision is None:
+                warnings.append("unclassified_decision")
+            if doc_type == "prosecution" or decision == "相对不起诉":
+                if not charges:
+                    warnings.append("missing_charges")
+            if input_fact and re.search(
+                r"《(?:中华人民共和国)?(?:刑法|刑事诉讼法)》|《人民检察院刑事诉讼规则》",
+                input_fact,
+            ):
+                warnings.append("fact_contaminated")
 
-        # 法条检查
-        # - 刑诉法/刑诉规则：至少包含一个
-        # - 刑法：仅起诉 / 相对不起诉需要
-        if not cpl_articles and not cpr_articles:
-            warnings.append("missing_procedural_law")
-        if doc_type == "prosecution" or decision == "相对不起诉":
-            if not cl_articles:
-                warnings.append("missing_cl")
+            # 法条检查
+            # - 刑诉法/刑诉规则：至少包含一个
+            # - 刑法：仅起诉 / 相对不起诉需要
+            if not cpl_articles and not cpr_articles:
+                warnings.append("missing_procedural_law")
+            if doc_type == "prosecution" or decision == "相对不起诉":
+                if not cl_articles:
+                    warnings.append("missing_cl")
 
     result = {
         "id": doc_id,
@@ -852,7 +807,6 @@ def process_split(input_dir: str, output_path: str, split_name: str, limit: int 
         unknown/missing_cl/             — 缺少刑法法条
         unknown/missing_procedural_law/ — 缺少刑事诉讼法和刑事诉讼规则法条
         unknown/fact_contaminated/      — 事实段混入推理内容（含法律引用）
-        unknown/empty_or_unparseable/   — 空文件或完全无法解析
         unknown/parse_error/            — 解析过程中抛出异常
     """
     output_dir = os.path.dirname(output_path) or "."

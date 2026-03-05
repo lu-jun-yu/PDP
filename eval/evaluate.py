@@ -127,11 +127,6 @@ def _split_articles(raw: str) -> list[str]:
     return [a.strip() for a in items if a.strip()]
 
 
-def _split_items(raw: str) -> list[str]:
-    """通用分隔：按 '、' '，' ',' 拆分。"""
-    items = re.split(r"[、，,;；]", raw)
-    return [a.strip() for a in items if a.strip()]
-
 
 def _split_charges(raw: str) -> list[str]:
     """将罪名列表拆分，只在"罪"字后的分隔符处切分，避免误拆含"、"的罪名。"""
