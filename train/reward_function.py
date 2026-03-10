@@ -3,10 +3,10 @@
 """
 train/reward_function.py
 
-GRPO 训练的奖励函数，共四项：
+GRPO 训练的奖励函数，共三项：
   1. format_reward   — 格式匹配奖励 (0 / 2)
   2. decision_reward  — 结果奖励: decision 正确与否 (0 / 2)
-  3. process_reward   — 过程奖励: charges_score + 法条 F1
+  3. process_reward   — 过程奖励: 法条 F1 (0 / 1)
   4. citation_reward  — 法条引用一致性奖励: 审查分析引用 vs 适用法条声明 的 F1
 """
 
@@ -20,13 +20,6 @@ import re
 def _split_articles(raw: str) -> list[str]:
     items = re.split(r"[、，,;；]", raw)
     return [a.strip() for a in items if a.strip()]
-
-
-def _split_charges(raw: str) -> list[str]:
-    """将罪名列表拆分，只在"罪"字后的分隔符处切分，避免误拆含"、"的罪名。"""
-    raw = raw.strip().rstrip("。.，,；;、")
-    parts = re.split(r"(?<=罪)[、，,;；]\s*", raw)
-    return [p.strip() for p in parts if p.strip()]
 
 
 def _set_prf1(pred: set, gold: set) -> tuple[float, float, float]:
@@ -65,7 +58,6 @@ def _parse_answer(text: str) -> dict:
     result = {
         "relevant_articles": [],
         "decision": "",
-        "charges": [],
     }
 
     answer_block = _strip_think_block(text)
@@ -91,11 +83,6 @@ def _parse_answer(text: str) -> dict:
         dec = re.search(r"决定[：:]\s*(.*?)(?:\n|$)", sec.group(1))
         if dec:
             result["decision"] = dec.group(1).strip()
-        chg = re.search(r"罪名[：:]\s*(.*?)(?:\n|$)", sec.group(1))
-        if chg:
-            raw = chg.group(1).strip()
-            if raw and raw != "无":
-                result["charges"] = _split_charges(raw)
 
     return result
 
@@ -153,13 +140,11 @@ def _check_format(text: str) -> bool:
     if not has_any_law:
         return False
 
-    # 最终结论须包含决定和罪名
+    # 最终结论须包含决定
     con_sec = re.search(r"【最终结论】(.*)", answer_block, re.DOTALL)
     if not con_sec:
         return False
     if not re.search(r"决定[：:]", con_sec.group(1)):
-        return False
-    if not re.search(r"罪名[：:]", con_sec.group(1)):
         return False
 
     return True
@@ -186,32 +171,20 @@ def decision_reward_func(completions, **kwargs) -> list[float]:
 
 def process_reward_func(completions, **kwargs) -> list[float]:
     """
-    过程奖励（0~2）：charges_score + 法条 F1。
-
-    charges：起诉（情节严重/轻微）/相对不起诉 → F1，法定/存疑不起诉 → 空=1 非空=0。
+    过程奖励（0~1）：法条 F1。
     """
-    ref_decisions = kwargs["decision"]
-    ref_charges = kwargs["charges"]
     ref_articles = kwargs["relevant_articles"]
 
     rewards = []
-    for c, dec, g_chg, g_arts in zip(
-        completions, ref_decisions, ref_charges, ref_articles
-    ):
+    for c, g_arts in zip(completions, ref_articles):
         parsed = _parse_answer(_get_content(c))
-
-        # --- charges ---
-        if dec in ("起诉（情节严重）", "起诉（情节轻微）", "相对不起诉"):
-            _, _, s_chg = _set_prf1(set(parsed["charges"]), set(g_chg))
-        else:
-            s_chg = 1.0 if len(parsed["charges"]) == 0 else 0.0
 
         # --- 法条 F1 ---
         pred_arts = set(parsed["relevant_articles"])
         gold_arts = set(g_arts)
         _, _, f1_arts = _set_prf1(pred_arts, gold_arts)
 
-        rewards.append(s_chg + f1_arts)
+        rewards.append(f1_arts)
 
     return rewards
 

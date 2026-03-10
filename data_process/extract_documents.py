@@ -14,8 +14,7 @@ extract_documents.py
     "procedure": "本案由XXX...",
     "fact": "...",
     "relevant_articles": ["cl:第XXX条", "cpl:第XXX条第X款", "cpr:第XXX条"],
-    "decision": "起诉（情节严重）" | "起诉（情节轻微）" | "相对不起诉" | "法定不起诉" | "存疑不起诉",
-    "charges": ["XXX罪"],
+    "decision": "起诉" | "相对不起诉" | "法定不起诉" | "存疑不起诉",
     "raw_reasoning_and_decision": "本院认为，..."
 }
 
@@ -31,7 +30,6 @@ import json
 import shutil
 import logging
 import argparse
-from pathlib import Path
 from collections import Counter, defaultdict
 
 # ============================================================================
@@ -169,10 +167,6 @@ def extract_province(procuratorate: str, body: str) -> str:
     for short, full in PROVINCE_SHORT.items():
         if f"{short}省" in search_text or f"{short}市" in search_text:
             return full
-    # 3) 简称（仅限 2 字以上，避免误匹配）
-    for short, full in PROVINCE_SHORT.items():
-        if len(short) >= 2 and short in search_text:
-            return full
     return ""
 
 
@@ -296,14 +290,8 @@ def _detect_paragraph_section(para: str, current: str, doc_type: str):
             return "reasoning"
         if re.match(r"经(?:本院|依法)审查(?:，)?认为|本院依据", stripped):
             return "reasoning"
-        # "被不起诉人/被告人XXX的行为已触犯"
-        if re.match(r"(?:被不起诉人|被告人|犯罪嫌疑人).{0,50}的?行为(?:已)?触犯", stripped):
-            return "reasoning"
-        # "XXX实施了/触犯了《刑法》"
-        if re.match(r".{1,20}(?:实施|触犯)了?《中华人民共和国刑法》", stripped):
-            return "reasoning"
-        # 存疑不起诉：经审查并退回补充侦查
-        if re.match(r"经(?:本院|依法)?审查.*?并.*?(?:退回)?.*?(?:补充)?(?:侦查|调查)", stripped):
+        # 存疑不起诉：经（本院）审查并（经X次）退回补充侦查/调查
+        if re.match(r"经(?:本院|依法)?审查并(?:经)?(?:[一二三四五六七八九两\d]+次)?退回补充(?:侦查|调查)", stripped):
             return "reasoning"
 
     # ---- → end ----
@@ -398,7 +386,7 @@ def extract_articles(reasoning: str):
     return cl, cpl, cpr
 
 
-def detect_decision_type(reasoning: str, body: str, filename: str = "") -> str | None:
+def detect_decision_type(reasoning: str) -> str | None:
     """判定不起诉类型。
 
     分类逻辑参考法律规定和实务文书特征，按优先级判断：
@@ -475,120 +463,8 @@ def detect_decision_type(reasoning: str, body: str, filename: str = "") -> str |
     if re.search(r"情节(?:较为)?(?:轻微|较轻)", c):
         return "相对不起诉"
 
-    # === 文件名 / 标题回退 ===
-    hint = filename + " " + body[:300]
-    if "法定不起诉" in hint:
-        return "法定不起诉"
-    if "存疑不起诉" in hint:
-        return "存疑不起诉"
-    if "相对不起诉" in hint:
-        return "相对不起诉"
-
     # === 无法分类 ===
     return None
-
-
-def detect_prosecution_severity(reasoning: str) -> str:
-    """判定起诉案件的情节严重程度。
-
-    检测推理段中是否存在常见从轻/减轻情节关键词（与相对不起诉案件
-    共享的"情节轻微"特征），以此区分起诉中的边界案件。
-
-    Returns:
-        '起诉（情节轻微）' | '起诉（情节严重）'
-    """
-    minor_keywords = [
-        "犯罪情节轻微",
-        "犯罪情节较轻",
-        "情节轻微",
-        "情节较轻",
-        "自首",
-        "认罪认罚",
-        "初犯",
-        "偶犯",
-    ]
-    if any(kw in reasoning for kw in minor_keywords):
-        return "起诉（情节轻微）"
-    if re.search(r"情节(?:较为)?(?:轻微|较轻)", reasoning):
-        return "起诉（情节轻微）"
-    return "起诉（情节严重）"
-
-
-def extract_charges(reasoning: str, procedure: str = "", body: str = "") -> list:
-    """从推理 / 程序 / 正文标题中提取罪名列表。"""
-    charges = []
-
-    # ---- 从推理部分提取（优先级最高）----
-    # 1) 构成XXX罪（排除"不构成"的情况）
-    for m in re.finditer(
-        r"(?<!不)构成([\u4e00-\u9fa5、]+罪)(?=[，。；：\s、]|$)", reasoning
-    ):
-        _add_charge(charges, m.group(1))
-
-    # 2) 应当以XXX罪追究 / 以XXX罪追究
-    for m in re.finditer(
-        r"(?:应当)?以([\u4e00-\u9fa5、]+罪)追究", reasoning
-    ):
-        _add_charge(charges, m.group(1))
-
-    # ---- 回退：从程序段提取 ----
-    if not charges and procedure:
-        # "涉嫌XXX罪"
-        for m in re.finditer(
-            r"涉嫌([\u4e00-\u9fa5、]+罪)(?=[，。；：\s、]|$)", procedure
-        ):
-            _add_charge(charges, m.group(1))
-        # "涉嫌XXX案"（起诉书程序段常用"案"而非"罪"）
-        if not charges:
-            for m in re.finditer(
-                r"涉嫌([\u4e00-\u9fa5、]{2,15})案(?=[，。；：\s、]|$)", procedure
-            ):
-                _add_charge(charges, m.group(1) + "罪")
-
-    # ---- 回退：从正文标题中提取案由，转换为罪名 ----
-    # 支持多种标题格式：
-    #   "不起诉决定书（李某某危险驾驶案）"          — 有括号有人名
-    #   "不起诉决定书（   危险驾驶案）"              — 有括号无人名
-    #   "不起诉决定书刘某某危险驾驶案"               — 无括号
-    #   "不起诉决定书（黎某某掩饰、隐瞒犯罪所得案）" — 案由含顿号
-    #   "不起诉决定书（田某某涉嫌偷越国(边)境罪）"   — 以"罪"结尾
-    if not charges and body:
-        title_area = body[:300]
-        m = re.search(
-            r"不起诉决定书[（(\s]?"
-            r"(?:[^案罪]*?某[某甲乙丙丁戊]?)?"  # 可选：跳过人名
-            r"\s*(?:涉嫌)?"                       # 跳过空白和"涉嫌"
-            r"([\u4e00-\u9fa5（()）、]{2,15}[案罪])",  # 捕获案由
-            title_area,
-        )
-        if not m:
-            # 起诉书标题格式："XXX案起诉书" 或 "XXX罪（起诉书）"
-            # 匹配最后一个"案"/"罪"之前的案由名
-            m = re.search(
-                r"([\u4e00-\u9fa5、]{2,15})[案罪]\s*(?:起诉书|[（(]起诉书[）)])",
-                title_area,
-            )
-        if m:
-            charge_name = m.group(1)
-            charge_name = re.sub(r"[案罪]$", "", charge_name) + "罪"
-            _add_charge(charges, charge_name)
-
-    return charges
-
-
-def _add_charge(charges: list, raw: str):
-    """清洗并去重后添加罪名，支持拆分多罪名。
-
-    拆分逻辑：按"罪"后紧跟分隔符拆分，如 盗窃罪、抢劫罪 → [盗窃罪, 抢劫罪]
-    但不拆分罪名内部的顿号，如 掩饰、隐瞒犯罪所得罪（因为"、"不跟在"罪"后面）。
-    """
-    parts = re.split(r"罪[、，和及]", raw)
-    for i, part in enumerate(parts):
-        name = part.strip("、，。； 的之")
-        if i < len(parts) - 1:
-            name += "罪"  # 被 split 吃掉的 "罪" 加回来
-        if name and name.endswith("罪") and len(name) >= 3 and name not in charges:
-            charges.append(name)
 
 
 # ============================================================================
@@ -677,14 +553,9 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
     cl_articles, cpl_articles, cpr_articles = extract_articles(reasoning)
 
     if doc_type == "prosecution":
-        charges = extract_charges(reasoning, input_procedure, body)
-        decision = detect_prosecution_severity(reasoning)
+        decision = "起诉"
     else:
-        decision = detect_decision_type(reasoning, body, filename)
-        if decision == "相对不起诉":
-            charges = extract_charges(reasoning, input_procedure, body)
-        else:
-            charges = []
+        decision = detect_decision_type(reasoning)
 
     # ----- 质量标记 -----
     warnings = []
@@ -723,9 +594,6 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
         else:
             if decision is None:
                 warnings.append("unclassified_decision")
-            if doc_type == "prosecution" or decision == "相对不起诉":
-                if not charges:
-                    warnings.append("missing_charges")
             if input_fact and re.search(
                 r"《(?:中华人民共和国)?(?:刑法|刑事诉讼法)》|《人民检察院刑事诉讼规则》",
                 input_fact,
@@ -756,7 +624,6 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
             + [f"cpr:{a}" for a in cpr_articles]
         ),
         "decision": decision,
-        "charges": charges,
         "raw_reasoning_and_decision": reasoning,
     }
     if warnings:
@@ -785,7 +652,6 @@ UNKNOWN_WARNINGS = {
     "missing_procedure",
     "missing_fact",
     "missing_reasoning",
-    "missing_charges",
     "missing_cl",
     "missing_procedural_law",
     "fact_contaminated",
@@ -803,7 +669,6 @@ def process_split(input_dir: str, output_path: str, split_name: str, limit: int 
         unknown/missing_procedure/     — 缺少程序段
         unknown/missing_fact/           — 缺少事实段（死亡案件豁免）
         unknown/missing_reasoning/      — 缺少推理段
-        unknown/missing_charges/        — 缺少罪名
         unknown/missing_cl/             — 缺少刑法法条
         unknown/missing_procedural_law/ — 缺少刑事诉讼法和刑事诉讼规则法条
         unknown/fact_contaminated/      — 事实段混入推理内容（含法律引用）
@@ -880,7 +745,7 @@ def process_split(input_dir: str, output_path: str, split_name: str, limit: int 
 
     # 日志
     logger.info(f"[{split_name}] 完成: 成功 {ok}, 未分类 {total_unknown}")
-    for dt in ["起诉（情节严重）", "起诉（情节轻微）", "相对不起诉", "法定不起诉", "存疑不起诉"]:
+    for dt in ["起诉", "相对不起诉", "法定不起诉", "存疑不起诉"]:
         logger.info(f"  {dt}: {stats.get(dt, 0)}")
     if total_unknown > 0:
         logger.info(f"  未分类文件已保存至: {unknown_dir}")
@@ -934,7 +799,7 @@ def main():
         ok = sum(v for k, v in stats.items() if not k.startswith("_"))
         unknown = stats.get("_unknown", 0)
         print(f"\n  [{split}]  成功 {ok}  |  未分类 {unknown}")
-        for dt in ["起诉（情节严重）", "起诉（情节轻微）", "相对不起诉", "法定不起诉", "存疑不起诉"]:
+        for dt in ["起诉", "相对不起诉", "法定不起诉", "存疑不起诉"]:
             print(f"      {dt}: {stats.get(dt, 0)}")
     print("=" * 65)
 

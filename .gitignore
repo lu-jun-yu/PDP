@@ -1,6 +1,7 @@
 __pycache__
 models/
 token.json
-results/*/*.json
+results/
 results/*.jsonl
 data
+paper/

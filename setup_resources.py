@@ -83,13 +83,13 @@ def main():
         #     'cmd': f'export WANDB_API_KEY={WANDB_API_KEY} >> ~/.bashrc',
         #     'desc': '设置 Weights & Biases API Key'
         # },
-        # {
-        #     'cmd': f"huggingface-cli download Qwen/Qwen3-0.6B --local-dir /root/LawShiftLLM/models/Qwen3-0.6B",
-        #     'desc': '下载 Qwen3-0.6B 模型'
-        # },
         {
-            'cmd': f"huggingface-cli download Qwen/Qwen2.5-7B-Instruct --local-dir /root/LawShiftLLM/models/Qwen2.5-7B-Instruct",
-            'desc': '下载 Qwen2.5-7B-Instruct 模型'
+            'cmd': f"huggingface-cli download Julian2002/pdp25k --local-dir /root/data/pdp25k",
+            'desc': '下载 Qwen3-4B 模型'
+        },
+        {
+            'cmd': f"huggingface-cli download Qwen/Qwen3-4B --local-dir /root/PDP/models/Qwen3-4B",
+            'desc': '下载 Qwen3-4B 模型'
         }
     ]
 

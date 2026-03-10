@@ -5,16 +5,20 @@ eval/evaluate.py
 
 使用 vLLM 对 PDP 数据集进行评估。
 
-模型预测三个目标：
+模型预测两个目标：
   - relevant_articles (法条，带前缀 cl:/cpl:/cpr:) — 过程评估
   - decision           (起诉决定)                       — 结果评估
-  - charges            (罪名)                           — 结果评估
+
+评估分两级：
+  - 第一级（二分类）：起诉 / 不起诉
+  - 第二级（四分类）：起诉、相对不起诉、法定不起诉、存疑不起诉
 
 Usage:
     python eval/evaluate.py
     python eval/evaluate.py --model-path models/Qwen3-0.6B
     python eval/evaluate.py --batch-size 500          # 分批推理，支持断点续推
     python eval/evaluate.py --no-resume               # 忽略断点，从头评估
+    python eval/evaluate.py --with-definitions        # 消融实验：提示含不起诉定义
 """
 
 import argparse
@@ -64,13 +68,11 @@ def parse_answer(text: str) -> dict:
         {
             "relevant_articles": list[str],   # 带前缀，如 "cl:第XXX条"
             "decision": str,
-            "charges": list[str],
         }
     """
     result = {
         "relevant_articles": [],
         "decision": "",
-        "charges": [],
     }
 
     answer_block = _strip_think_block(text)
@@ -111,13 +113,6 @@ def parse_answer(text: str) -> dict:
         if dec_match:
             result["decision"] = dec_match.group(1).strip()
 
-        # 罪名
-        charges_match = re.search(r"罪名[：:]\s*(.*?)(?:\n|$)", section_text)
-        if charges_match:
-            raw = charges_match.group(1).strip()
-            if raw and raw != "无":
-                result["charges"] = _split_charges(raw)
-
     return result
 
 
@@ -125,14 +120,6 @@ def _split_articles(raw: str) -> list[str]:
     """将 '第XXX条、第YYY条第Z款' 拆分为列表。"""
     items = re.split(r"[、，,;；]", raw)
     return [a.strip() for a in items if a.strip()]
-
-
-
-def _split_charges(raw: str) -> list[str]:
-    """将罪名列表拆分，只在"罪"字后的分隔符处切分，避免误拆含"、"的罪名。"""
-    raw = raw.strip().rstrip("。.，,；;、")
-    parts = re.split(r"(?<=罪)[、，,;；]\s*", raw)
-    return [p.strip() for p in parts if p.strip()]
 
 
 # ============================================================
@@ -155,21 +142,27 @@ def set_precision_recall_f1(pred: set, gold: set) -> tuple[float, float, float]:
     return precision, recall, f1
 
 
+NON_PROSECUTION_TYPES = {"相对不起诉", "法定不起诉", "存疑不起诉"}
+
+
+def _to_level1(decision: str) -> str:
+    """将四分类决定映射为二分类：起诉 / 不起诉。"""
+    return "不起诉" if decision in NON_PROSECUTION_TYPES else "起诉"
+
+
 def compute_metrics(predictions: list[dict], references: list[dict]) -> dict:
     """
     计算所有评估指标。
 
     过程评估 (relevant_articles): 法条 F1
-    结果评估 (decision): Accuracy
-    结果评估 (charges): Precision / Recall / F1
+    结果评估 (decision):
+      - 第一级（二分类）：起诉 / 不起诉 Accuracy
+      - 第二级（四分类）：起诉、相对不起诉、法定不起诉、存疑不起诉 Accuracy
     """
     metrics = defaultdict(list)
     decision_per_class = defaultdict(list)  # 各决定类别的准确率
 
     for pred, ref in zip(predictions, references):
-        # 判断参考答案的决定类型是否有罪名
-        has_charges = ref["decision"] in ("起诉（情节严重）", "起诉（情节轻微）", "相对不起诉")
-
         # --- 过程评估：法条 F1（所有样本） ---
         pred_arts = set(pred["relevant_articles"])
         gold_arts = set(ref["relevant_articles"])
@@ -178,19 +171,15 @@ def compute_metrics(predictions: list[dict], references: list[dict]) -> dict:
         metrics["articles_recall"].append(r)
         metrics["articles_f1"].append(f)
 
-        # --- 结果评估：决定（所有样本 + 分类） ---
-        correct = 1.0 if pred["decision"] == ref["decision"] else 0.0
-        metrics["decision_accuracy"].append(correct)
-        decision_per_class[ref["decision"]].append(correct)
+        # --- 结果评估：第一级（二分类）---
+        pred_l1 = _to_level1(pred["decision"])
+        ref_l1 = _to_level1(ref["decision"])
+        metrics["decision_level1_accuracy"].append(1.0 if pred_l1 == ref_l1 else 0.0)
 
-        # --- 结果评估：罪名（仅起诉/相对不起诉） ---
-        if has_charges:
-            pred_charges = set(pred["charges"])
-            gold_charges = set(ref["charges"])
-            p, r, f = set_precision_recall_f1(pred_charges, gold_charges)
-            metrics["charges_precision"].append(p)
-            metrics["charges_recall"].append(r)
-            metrics["charges_f1"].append(f)
+        # --- 结果评估：第二级（四分类）---
+        correct = 1.0 if pred["decision"] == ref["decision"] else 0.0
+        metrics["decision_level2_accuracy"].append(correct)
+        decision_per_class[ref["decision"]].append(correct)
 
     # 宏平均
     result = {}
@@ -270,6 +259,11 @@ def main():
         action="store_true",
         help="不使用断点续推，从头开始评估",
     )
+    parser.add_argument(
+        "--with-definitions",
+        action="store_true",
+        help="消融实验：在系统提示中加入不起诉类型的定义与适用条件",
+    )
     args = parser.parse_args()
 
     # ---- 加载数据 ----
@@ -286,8 +280,9 @@ def main():
     # ---- 断点续推 ----
     os.makedirs(args.output_dir, exist_ok=True)
     model_name = Path(args.model_path).name
+    variant_tag = "with_def" if args.with_definitions else "baseline"
     checkpoint_file = os.path.join(
-        args.output_dir, f"{model_name}_test_checkpoint.jsonl"
+        args.output_dir, f"{model_name}_test_{variant_tag}_checkpoint.jsonl"
     )
 
     completed = {}  # index -> record
@@ -318,6 +313,8 @@ def main():
 
         # ---- 构建提示 ----
         logger.info("构建提示词...")
+        if args.with_definitions:
+            logger.info("消融实验模式：系统提示中包含不起诉类型定义")
         conversations = []
         for i in remaining_indices:
             sample = dataset[i]
@@ -325,6 +322,7 @@ def main():
                 person_info=sample["person_info"],
                 procedure=sample["procedure"],
                 fact=sample["fact"],
+                with_definitions=args.with_definitions,
             )
             conversations.append(messages)
 
@@ -380,7 +378,6 @@ def main():
                     ref = {
                         "relevant_articles": list(sample["relevant_articles"]),
                         "decision": sample["decision"],
-                        "charges": list(sample["charges"]),
                     }
                     record = {
                         "index": idx,
@@ -433,6 +430,7 @@ def main():
     print("\n" + "=" * 60)
     print(f"  PDP 评估结果 — test split ({len(dataset)} samples)")
     print(f"  模型: {args.model_path}")
+    print(f"  变体: {variant_tag}")
     print("=" * 60)
 
     print("\n【过程评估】")
@@ -443,13 +441,10 @@ def main():
 
     print("\n【结果评估】")
     print(f"  决定 (decision):")
-    print(f"    Accuracy:  {metrics['decision_accuracy']:.4f}")
+    print(f"    第一级（起诉/不起诉）Accuracy: {metrics['decision_level1_accuracy']:.4f}")
+    print(f"    第二级（四分类）Accuracy:       {metrics['decision_level2_accuracy']:.4f}")
     for cls, info in metrics["decision_per_class"].items():
         print(f"    {cls}: {info['accuracy']:.4f} ({info['count']} 样本)")
-    print(f"  罪名 (charges):")
-    print(f"    Precision: {metrics['charges_precision']:.4f}")
-    print(f"    Recall:    {metrics['charges_recall']:.4f}")
-    print(f"    F1:        {metrics['charges_f1']:.4f}")
 
     print(f"\n  解析失败率: {parse_fail_count}/{len(predictions)}")
     print("=" * 60)
@@ -457,7 +452,7 @@ def main():
     # ---- 保存指标 ----
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     result_subdir = os.path.join(
-        args.output_dir, f"{model_name}_test_{timestamp}"
+        args.output_dir, f"{model_name}_test_{variant_tag}_{timestamp}"
     )
     os.makedirs(result_subdir, exist_ok=True)
 
@@ -470,6 +465,7 @@ def main():
         }
     metrics_output = {
         "model": args.model_path,
+        "variant": variant_tag,
         "num_samples": len(dataset),
         "parse_fail_count": parse_fail_count,
         "process_metrics": {
@@ -481,13 +477,9 @@ def main():
         },
         "result_metrics": {
             "decision": {
-                "accuracy": round(metrics["decision_accuracy"], 4),
+                "level1_accuracy": round(metrics["decision_level1_accuracy"], 4),
+                "level2_accuracy": round(metrics["decision_level2_accuracy"], 4),
                 "per_class": decision_per_class_output,
-            },
-            "charges": {
-                "precision": round(metrics["charges_precision"], 4),
-                "recall": round(metrics["charges_recall"], 4),
-                "f1": round(metrics["charges_f1"], 4),
             },
         },
     }
