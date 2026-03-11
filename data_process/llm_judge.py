@@ -441,8 +441,8 @@ def main():
     )
     parser.add_argument(
         "--model",
-        default="qwen3-235b-a22b-instruct-2507",
-        help="评判模型 (default: qwen3-235b-a22b-instruct-2507)",
+        default="qwen3.5-122b-a10b", # qwen3.5-397b-a17b
+        help="评判模型 (default: qwen3.5-122b-a10b)",
     )
     parser.add_argument(
         "--concurrency",

@@ -291,7 +291,7 @@ def _detect_paragraph_section(para: str, current: str, doc_type: str):
         if re.match(r"经(?:本院|依法)审查(?:，)?认为|本院依据", stripped):
             return "reasoning"
         # 存疑不起诉：经（本院）审查并（经X次）退回补充侦查/调查
-        if re.match(r"经(?:本院|依法)?审查并(?:经)?(?:[一二三四五六七八九两\d]+次)?退回补充(?:侦查|调查)", stripped):
+        if re.match(r"经(?:本院|依法)?审查并(?:经)?(?:[一二三四五六七八九两\d]+次)?(?:退回)?补充(?:侦查|调查)", stripped):
             return "reasoning"
 
     # ---- → end ----
