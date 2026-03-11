@@ -28,3 +28,16 @@ python eval/evaluate.py \
     --gpu-memory-utilization "$GPU_UTIL" \
     --output-dir "$OUTPUT_DIR" \
     --batch-size "$BATCH_SIZE"
+
+# ---- 运行评估 with definitions ----
+python eval/evaluate.py \
+    --model-path "$MODEL_PATH" \
+    --data-path "$DATA_PATH" \
+    --max-model-len "$MAX_MODEL_LEN" \
+    --max-tokens "$MAX_TOKENS" \
+    --temperature "$TEMPERATURE" \
+    --tensor-parallel-size "$TP_SIZE" \
+    --gpu-memory-utilization "$GPU_UTIL" \
+    --output-dir "$OUTPUT_DIR" \
+    --batch-size "$BATCH_SIZE" \
+    --with-definitions
