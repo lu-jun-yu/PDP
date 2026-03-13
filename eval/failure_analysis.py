@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-eval/failure_analysis_v2.py
+eval/failure_analysis.py
 
 PDP 任务挑战性深度分析脚本（v2）。
 重点分析：
@@ -13,8 +13,8 @@ PDP 任务挑战性深度分析脚本（v2）。
   2. pdp_paper_introduction.md     — 学术论文引言草稿
 
 Usage:
-    python eval/failure_analysis_v2.py
-    python eval/failure_analysis_v2.py --result-dir results/Qwen3-4B_test_20260305_185907
+    python eval/failure_analysis.py
+    python eval/failure_analysis.py --result-dir results/Qwen3-4B_test_20260305_185907
 """
 
 import argparse
