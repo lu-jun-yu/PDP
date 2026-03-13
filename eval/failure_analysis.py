@@ -205,7 +205,10 @@ class Analyzer:
 
         gs = self.metrics
         total = gs.get("num_samples", len(self.all))
-        per_class = gs.get("result_metrics", {}).get("decision", {}).get("per_class", {})
+        decision_info = gs.get("result_metrics", {}).get("decision", {})
+        per_class = decision_info.get("per_class", {})
+        level1_acc = decision_info.get("level1_accuracy", 0)
+        level1_per_class = decision_info.get("level1_per_class", {})
         art_f1 = gs.get("process_metrics", {}).get("articles", {}).get("f1", 0)
         parse_fail = gs.get("parse_fail_count", 0)
         n_correct = len(self.correct)
@@ -240,6 +243,31 @@ class Analyzer:
         for dt in DECISION_TYPES:
             info = per_class.get(dt, {})
             p("| {} | {} | {:.2%} |".format(dt, info.get("count", 0), info.get("accuracy", 0)))
+        p()
+
+        # 二分类视角
+        p("### 二分类视角（起诉 / 不起诉）")
+        p()
+        p("> 对被告人而言，哪种不起诉类型并不重要，重要的是**是否被起诉**。")
+        p()
+        p_info = level1_per_class.get("起诉", {})
+        np_info = level1_per_class.get("不起诉", {})
+        p("| 类别 | 样本数 | 准确率 |")
+        p("|------|--------|--------|")
+        p("| **整体** | **{}** | **{:.2%}** |".format(total, level1_acc))
+        p("| 起诉 | {} | {:.2%} |".format(p_info.get("count", 0), p_info.get("accuracy", 0)))
+        p("| 不起诉 | {} | {:.2%} |".format(np_info.get("count", 0), np_info.get("accuracy", 0)))
+        p()
+        if p_info.get("accuracy", 0) and np_info.get("accuracy", 0):
+            gap = p_info["accuracy"] - np_info["accuracy"]
+            if abs(gap) > 0.05:
+                higher = "起诉" if gap > 0 else "不起诉"
+                lower = "不起诉" if gap > 0 else "起诉"
+                p("> 模型识别 **{}** 的能力（{:.1%}）显著优于 **{}**（{:.1%}），差距 {:.1f} 个百分点。".format(
+                    higher, max(p_info["accuracy"], np_info["accuracy"]),
+                    lower, min(p_info["accuracy"], np_info["accuracy"]),
+                    abs(gap) * 100))
+                p()
         p()
 
         # 混淆矩阵
@@ -546,6 +574,9 @@ class Analyzer:
         p()
         p("| # | 挑战 | 英文名 | 关键证据 |")
         p("|---|------|--------|---------|")
+        p("| 0 | 起诉/不起诉二分类 | Binary Decision | 起诉 {:.1%} vs 不起诉 {:.1%} |".format(
+            level1_per_class.get("起诉", {}).get("accuracy", 0),
+            level1_per_class.get("不起诉", {}).get("accuracy", 0)))
         p("| 1 | 起诉->不起诉误判 | Prosecution Leniency Bias | {}/{} ({:.1%}) |".format(total_p2np, total_p, total_p2np / total_p))
         p("| 2 | 不起诉类型混淆 | NP Type Confusion | {} 例互混 |".format(total_np_conf))
         p("| 3 | 证据充分性评估 | Evidence Sufficiency | 存疑不起诉准确率 {:.1%} |".format(d_correct / d_total))
@@ -573,11 +604,16 @@ class Analyzer:
 
         gs = self.metrics
         total = gs.get("num_samples", len(self.all))
-        per_class = gs.get("result_metrics", {}).get("decision", {}).get("per_class", {})
+        decision_info = gs.get("result_metrics", {}).get("decision", {})
+        per_class = decision_info.get("per_class", {})
+        level1_acc = decision_info.get("level1_accuracy", 0)
+        level1_per_class = decision_info.get("level1_per_class", {})
         art_f1 = gs.get("process_metrics", {}).get("articles", {}).get("f1", 0)
         n_correct = len(self.correct)
         n_loaded = len(self.all)
         acc = n_correct / n_loaded if n_loaded else 0
+        p_l1_acc = level1_per_class.get("起诉", {}).get("accuracy", 0)
+        np_l1_acc = level1_per_class.get("不起诉", {}).get("accuracy", 0)
         doubt_acc = per_class.get("存疑不起诉", {}).get("accuracy", 0)
         p_mit = sum(1 for r in self.all if r["reference"]["decision"] in PROSECUTION and kw_found(input_text(r), MITIGATING_KW))
         np_mit = sum(1 for r in self.all if r["reference"]["decision"] in NON_PROSECUTION and kw_found(input_text(r), MITIGATING_KW))
@@ -631,7 +667,7 @@ class Analyzer:
 
         p("## 3. Key Challenges")
         p()
-        p("对 Qwen3-4B 在 {} 个测试样本上的评估显示四分类准确率仅 **{:.1%}**，揭示以下核心挑战：".format(total, acc))
+        p("对 Qwen3-4B 在 {} 个测试样本上的评估显示：即使简化为起诉/不起诉二分类，准确率也仅 **{:.1%}**（起诉 {:.1%}，不起诉 {:.1%}）；细化到四分类准确率更降至 **{:.1%}**，揭示以下核心挑战：".format(total, level1_acc, p_l1_acc, np_l1_acc, acc))
         p()
 
         p("### 3.1 Prosecution Leniency Bias (起诉案件宽大误判)")
@@ -673,7 +709,10 @@ class Analyzer:
         p()
         p("| Metric | Qwen3-4B |")
         p("|--------|----------|")
-        p("| Decision Accuracy | {:.2%} |".format(acc))
+        p("| Binary Accuracy (起诉/不起诉) | {:.2%} |".format(level1_acc))
+        p("| - 起诉 | {:.2%} |".format(p_l1_acc))
+        p("| - 不起诉 | {:.2%} |".format(np_l1_acc))
+        p("| 4-Class Accuracy | {:.2%} |".format(acc))
         for dt in DECISION_TYPES:
             info = per_class.get(dt, {})
             p("| - {} | {:.2%} |".format(dt, info.get("accuracy", 0)))

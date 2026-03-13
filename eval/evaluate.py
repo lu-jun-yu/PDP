@@ -39,6 +39,7 @@ from datasets import load_from_disk
 from vllm import LLM, SamplingParams
 
 from prompt_template import build_messages
+from eval.metrics import compute_metrics, build_metrics_json
 
 logging.basicConfig(
     level=logging.INFO,
@@ -120,81 +121,6 @@ def _split_articles(raw: str) -> list[str]:
     """将 '第XXX条、第YYY条第Z款' 拆分为列表。"""
     items = re.split(r"[、，,;；]", raw)
     return [a.strip() for a in items if a.strip()]
-
-
-# ============================================================
-#  评估指标
-# ============================================================
-
-def set_precision_recall_f1(pred: set, gold: set) -> tuple[float, float, float]:
-    """计算集合级别的 precision, recall, F1。"""
-    if not pred and not gold:
-        return 1.0, 1.0, 1.0
-    if not pred:
-        return 0.0, 0.0, 0.0
-    if not gold:
-        return 0.0, 0.0, 0.0
-
-    tp = len(pred & gold)
-    precision = tp / len(pred)
-    recall = tp / len(gold)
-    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
-    return precision, recall, f1
-
-
-NON_PROSECUTION_TYPES = {"相对不起诉", "法定不起诉", "存疑不起诉"}
-
-
-def _to_level1(decision: str) -> str:
-    """将四分类决定映射为二分类：起诉 / 不起诉。"""
-    return "不起诉" if decision in NON_PROSECUTION_TYPES else "起诉"
-
-
-def compute_metrics(predictions: list[dict], references: list[dict]) -> dict:
-    """
-    计算所有评估指标。
-
-    过程评估 (relevant_articles): 法条 F1
-    结果评估 (decision):
-      - 第一级（二分类）：起诉 / 不起诉 Accuracy
-      - 第二级（四分类）：起诉、相对不起诉、法定不起诉、存疑不起诉 Accuracy
-    """
-    metrics = defaultdict(list)
-    decision_per_class = defaultdict(list)  # 各决定类别的准确率
-
-    for pred, ref in zip(predictions, references):
-        # --- 过程评估：法条 F1（所有样本） ---
-        pred_arts = set(pred["relevant_articles"])
-        gold_arts = set(ref["relevant_articles"])
-        p, r, f = set_precision_recall_f1(pred_arts, gold_arts)
-        metrics["articles_precision"].append(p)
-        metrics["articles_recall"].append(r)
-        metrics["articles_f1"].append(f)
-
-        # --- 结果评估：第一级（二分类）---
-        pred_l1 = _to_level1(pred["decision"])
-        ref_l1 = _to_level1(ref["decision"])
-        metrics["decision_level1_accuracy"].append(1.0 if pred_l1 == ref_l1 else 0.0)
-
-        # --- 结果评估：第二级（四分类）---
-        correct = 1.0 if pred["decision"] == ref["decision"] else 0.0
-        metrics["decision_level2_accuracy"].append(correct)
-        decision_per_class[ref["decision"]].append(correct)
-
-    # 宏平均
-    result = {}
-    for key, values in metrics.items():
-        result[key] = sum(values) / len(values) if values else 0.0
-
-    # 各决定类别的准确率
-    result["decision_per_class"] = {}
-    for cls, values in decision_per_class.items():
-        result["decision_per_class"][cls] = {
-            "accuracy": sum(values) / len(values) if values else 0.0,
-            "count": len(values),
-        }
-
-    return result
 
 
 # ============================================================
@@ -442,9 +368,11 @@ def main():
     print("\n【结果评估】")
     print(f"  决定 (decision):")
     print(f"    第一级（起诉/不起诉）Accuracy: {metrics['decision_level1_accuracy']:.4f}")
+    for cls, info in metrics["level1_per_class"].items():
+        print(f"      {cls}: {info['accuracy']:.4f} ({info['count']} 样本)")
     print(f"    第二级（四分类）Accuracy:       {metrics['decision_level2_accuracy']:.4f}")
     for cls, info in metrics["decision_per_class"].items():
-        print(f"    {cls}: {info['accuracy']:.4f} ({info['count']} 样本)")
+        print(f"      {cls}: {info['accuracy']:.4f} ({info['count']} 样本)")
 
     print(f"\n  解析失败率: {parse_fail_count}/{len(predictions)}")
     print("=" * 60)
@@ -457,32 +385,13 @@ def main():
     os.makedirs(result_subdir, exist_ok=True)
 
     metrics_file = os.path.join(result_subdir, "metrics.json")
-    decision_per_class_output = {}
-    for cls, info in metrics["decision_per_class"].items():
-        decision_per_class_output[cls] = {
-            "accuracy": round(info["accuracy"], 4),
-            "count": info["count"],
-        }
-    metrics_output = {
-        "model": args.model_path,
-        "variant": variant_tag,
-        "num_samples": len(dataset),
-        "parse_fail_count": parse_fail_count,
-        "process_metrics": {
-            "articles": {
-                "precision": round(metrics["articles_precision"], 4),
-                "recall": round(metrics["articles_recall"], 4),
-                "f1": round(metrics["articles_f1"], 4),
-            },
-        },
-        "result_metrics": {
-            "decision": {
-                "level1_accuracy": round(metrics["decision_level1_accuracy"], 4),
-                "level2_accuracy": round(metrics["decision_level2_accuracy"], 4),
-                "per_class": decision_per_class_output,
-            },
-        },
-    }
+    metrics_output = build_metrics_json(
+        metrics,
+        model=args.model_path,
+        variant=variant_tag,
+        num_samples=len(dataset),
+        parse_fail_count=parse_fail_count,
+    )
     with open(metrics_file, "w", encoding="utf-8") as f:
         json.dump(metrics_output, f, ensure_ascii=False, indent=2)
     logger.info(f"指标已保存: {metrics_file}")
