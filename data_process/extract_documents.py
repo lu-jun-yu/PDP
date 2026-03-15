@@ -9,7 +9,7 @@ extract_documents.py
 输出 schema:
 {
     "id": "FBM-CLI.P.XXXXXXXX",
-    "meta": { "year": 2023, "province": "江西省" },
+    "meta": { "date": "2023-07-07", "province": "江西省" },
     "person_info": "某人XXX...",
     "procedure": "本案由XXX...",
     "fact": "...",
@@ -22,6 +22,7 @@ Usage:
     python extract_documents.py
     python extract_documents.py --input-dir data/pku_fabao --output-dir data/PDP_dataset
     python extract_documents.py --limit 10   # 每个 split 只处理 10 条（调试用）
+    python extract_documents.py --split-date 2022-03-01  # 按日期划分 train/test
 """
 
 import os
@@ -31,6 +32,8 @@ import shutil
 import logging
 import argparse
 from collections import Counter, defaultdict
+
+import cpca
 
 # ============================================================================
 #  配置 & 常量
@@ -144,10 +147,20 @@ def extract_id(text: str) -> str:
     return f"FBM-CLI.P.{m.group(1)}" if m else ""
 
 
-def extract_year_from_date(body: str):
-    """从文末日期（如 2023年7月7日）提取年份"""
-    dates = re.findall(r"(\d{4})年\d{1,2}月\d{1,2}日", body)
-    return int(dates[-1]) if dates else None
+def extract_date_from_end(end_text: str) -> str | None:
+    """从 end section 中提取完整日期（年月日）。
+
+    Args:
+        end_text: classify_paragraphs 得到的 "end" 段文本
+
+    Returns:
+        日期字符串如 "2023-07-07"，提取失败返回 None
+    """
+    dates = re.findall(r"(\d{4})年(\d{1,2})月(\d{1,2})日", end_text)
+    if dates:
+        y, m, d = dates[-1]
+        return f"{y}-{int(m):02d}-{int(d):02d}"
+    return None
 
 
 def extract_procuratorate(body: str) -> str:
@@ -156,16 +169,22 @@ def extract_procuratorate(body: str) -> str:
     return m.group(1) if m else ""
 
 
-def extract_province(procuratorate: str, body: str) -> str:
-    """从检察院名称或全文前 1000 字推断省份"""
-    search_text = procuratorate + " " + body[:1000]
-    # 1) 完整省份名
+def extract_province_from_header(header_text: str) -> str:
+    """从 header 中提取省份。
+
+    优先使用 cpca 库从 header 中的地址信息（检察院全称等）提取省份，
+    回退到关键词匹配。
+    """
+    df = cpca.transform([header_text])
+    province = df.iloc[0]["省"]
+    if province and isinstance(province, str) and province.strip():
+        return province.strip()
+    # 回退：关键词匹配
     for full_name in PROVINCES_FULL:
-        if full_name in search_text:
+        if full_name in header_text:
             return full_name
-    # 2) 简称 + 省/市
     for short, full in PROVINCE_SHORT.items():
-        if f"{short}省" in search_text or f"{short}市" in search_text:
+        if f"{short}省" in header_text or f"{short}市" in header_text:
             return full
     return ""
 
@@ -496,12 +515,14 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
     # ----- 正文 -----
     body = strip_metadata_lines(raw_text)
 
-    year = extract_year_from_date(body)
-    procuratorate = extract_procuratorate(body)
-    province = extract_province(procuratorate, body)
-
-    # ----- 分段 -----
+    # ----- 分段（先分段，再从特定段提取元数据）-----
     sections = classify_paragraphs(body, doc_type)
+
+    # ----- 从 end 段提取日期 -----
+    date_str = extract_date_from_end(sections.get("end", ""))
+
+    # ----- 从 header 段提取省份 -----
+    province = extract_province_from_header(sections.get("header", ""))
 
     input_person = sections.get("person", "")
     # 过滤无关角色信息（如辩护人、指定辩护人）
@@ -583,6 +604,8 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
     elif "doc_type_mismatch" in warnings:
         pass
     else:
+        if not province:
+            warnings.append("missing_province")
         if not input_person:
             warnings.append("missing_person")
         elif not input_procedure:
@@ -608,11 +631,15 @@ def parse_document(filepath: str, doc_type: str = "non_prosecution") -> dict | N
             if doc_type == "prosecution" or decision == "相对不起诉":
                 if not cl_articles:
                     warnings.append("missing_cl")
+            
+            # 元数据检查
+            if not date_str:
+                warnings.append("missing_date")
 
     result = {
         "id": doc_id,
         "meta": {
-            "year": year,
+            "date": date_str,
             "province": province,
         },
         "person_info": input_person,
@@ -652,6 +679,8 @@ UNKNOWN_WARNINGS = {
     "missing_procedure",
     "missing_fact",
     "missing_reasoning",
+    "missing_province",
+    "missing_date",
     "missing_cl",
     "missing_procedural_law",
     "fact_contaminated",
@@ -669,6 +698,8 @@ def process_split(input_dir: str, output_path: str, split_name: str, limit: int 
         unknown/missing_procedure/     — 缺少程序段
         unknown/missing_fact/           — 缺少事实段（死亡案件豁免）
         unknown/missing_reasoning/      — 缺少推理段
+        unknown/missing_province/       — 缺少省份信息
+        unknown/missing_date/           — 缺少日期信息
         unknown/missing_cl/             — 缺少刑法法条
         unknown/missing_procedural_law/ — 缺少刑事诉讼法和刑事诉讼规则法条
         unknown/fact_contaminated/      — 事实段混入推理内容（含法律引用）
@@ -759,6 +790,30 @@ def process_split(input_dir: str, output_path: str, split_name: str, limit: int 
 #  入口
 # ============================================================================
 
+def _collect_all_files(input_dir: str) -> list[tuple[str, str]]:
+    """递归收集 input_dir 下所有文书文件路径及其类型。
+
+    遍历目录树，将 "不起诉" 目录下的 .txt 视为 non_prosecution，
+    将 "起诉" 目录下的 .txt 视为 prosecution。
+
+    Returns:
+        [(文件路径, 文书类型), ...]
+    """
+    files = []
+    for root, _dirs, filenames in os.walk(input_dir):
+        dirname = os.path.basename(root)
+        if dirname == "不起诉":
+            doc_type = "non_prosecution"
+        elif dirname == "起诉":
+            doc_type = "prosecution"
+        else:
+            continue
+        for f in sorted(filenames):
+            if f.endswith(".txt"):
+                files.append((os.path.join(root, f), doc_type))
+    return files
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="从北大法宝文书（不起诉决定书 + 起诉书）中提取结构化 JSON"
@@ -776,6 +831,11 @@ def main():
         help="每个 split 每种文书最多处理条数（调试用）",
     )
     parser.add_argument(
+        "--split-date", type=str, default=None,
+        help="按日期划分 train/test（格式：YYYY-MM-DD），早于此日期为 train，其余为 test；"
+             "不指定则按输入目录结构划分",
+    )
+    parser.add_argument(
         "--debug", action="store_true",
         help="输出 DEBUG 级日志",
     )
@@ -784,24 +844,95 @@ def main():
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    all_stats = {}
-    for split in ["train", "test"]:
-        in_dir = os.path.join(args.input_dir, split)
-        out_path = os.path.join(args.output_dir, split, "dataset.json")
-        _, stats = process_split(in_dir, out_path, split, limit=args.limit)
-        all_stats[split] = stats
+    if args.split_date:
+        # ---- 按日期划分模式 ----
+        all_files = _collect_all_files(args.input_dir)
+        if args.limit:
+            all_files = all_files[:args.limit]
+        logger.info(f"按日期划分模式: split_date={args.split_date}, 共 {len(all_files)} 个文件")
 
-    # ---- 总结 ----
-    print("\n" + "=" * 65)
-    print("  提取完成！")
-    print("=" * 65)
-    for split, stats in all_stats.items():
-        ok = sum(v for k, v in stats.items() if not k.startswith("_"))
-        unknown = stats.get("_unknown", 0)
-        print(f"\n  [{split}]  成功 {ok}  |  未分类 {unknown}")
-        for dt in ["起诉", "相对不起诉", "法定不起诉", "存疑不起诉"]:
-            print(f"      {dt}: {stats.get(dt, 0)}")
-    print("=" * 65)
+        train_results, test_results = [], []
+        stats = {"train": Counter(), "test": Counter()}
+        unknown_dir = os.path.join(args.output_dir, "unknown")
+        unknown_stats = Counter()
+
+        if os.path.isdir(unknown_dir):
+            shutil.rmtree(unknown_dir, ignore_errors=True)
+
+        total = len(all_files)
+        for i, (fpath, doc_type) in enumerate(all_files, 1):
+            try:
+                record = parse_document(fpath, doc_type)
+                if record:
+                    warnings = record.get("_warnings", [])
+                    hit_warnings = [w for w in warnings if w in UNKNOWN_WARNINGS]
+                    if hit_warnings:
+                        for w in hit_warnings:
+                            _save_to_unknown(fpath, unknown_dir, w)
+                            unknown_stats[w] += 1
+                    else:
+                        record.pop("_warnings", None)
+                        date_str = record["meta"].get("date")
+                        if date_str and date_str < args.split_date:
+                            train_results.append(record)
+                            stats["train"][record["decision"]] += 1
+                        else:
+                            test_results.append(record)
+                            stats["test"][record["decision"]] += 1
+                else:
+                    _save_to_unknown(fpath, unknown_dir, "empty_or_unparseable")
+                    unknown_stats["empty_or_unparseable"] += 1
+            except Exception as e:
+                _save_to_unknown(fpath, unknown_dir, "parse_error")
+                unknown_stats["parse_error"] += 1
+                logger.debug(f"  解析异常: {os.path.basename(fpath)} -> {e}")
+
+            if i % 500 == 0 or i == total:
+                logger.info(f"  进度: {i}/{total}")
+
+        # 保存 JSON
+        for split, results in [("train", train_results), ("test", test_results)]:
+            out_path = os.path.join(args.output_dir, split, "dataset.json")
+            os.makedirs(os.path.dirname(out_path), exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(results, f, ensure_ascii=False, indent=2)
+
+        # 总结
+        print("\n" + "=" * 65)
+        print(f"  提取完成！（按日期划分: {args.split_date}）")
+        print("=" * 65)
+        for split in ["train", "test"]:
+            results = train_results if split == "train" else test_results
+            print(f"\n  [{split}]  成功 {len(results)}")
+            for dt in ["起诉", "相对不起诉", "法定不起诉", "存疑不起诉"]:
+                print(f"      {dt}: {stats[split].get(dt, 0)}")
+
+        total_unknown = sum(unknown_stats.values())
+        if total_unknown > 0:
+            print(f"\n  未分类: {total_unknown}")
+            for reason, cnt in sorted(unknown_stats.items()):
+                print(f"      {reason}: {cnt}")
+        print("=" * 65)
+
+    else:
+        # ---- 默认：按目录结构划分 ----
+        all_stats = {}
+        for split in ["train", "test"]:
+            in_dir = os.path.join(args.input_dir, split)
+            out_path = os.path.join(args.output_dir, split, "dataset.json")
+            _, stats = process_split(in_dir, out_path, split, limit=args.limit)
+            all_stats[split] = stats
+
+        print("\n" + "=" * 65)
+        print("  提取完成！")
+        print("=" * 65)
+        for split, stats in all_stats.items():
+            ok = sum(v for k, v in stats.items() if not k.startswith("_"))
+            unknown = stats.get("_unknown", 0)
+            print(f"\n  [{split}]  成功 {ok}  |  未分类 {unknown}")
+            for dt in ["起诉", "相对不起诉", "法定不起诉", "存疑不起诉"]:
+                print(f"      {dt}: {stats.get(dt, 0)}")
+        print("=" * 65)
 
 
 if __name__ == "__main__":
