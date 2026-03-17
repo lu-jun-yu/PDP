@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -37,6 +38,21 @@ def add_prompt(example):
         fact=example["fact"],
     )
     return example
+
+
+def get_last_checkpoint(output_dir: str):
+    """在 output_dir 中寻找最新的 checkpoint-N 目录，返回路径或 None。"""
+    output_path = Path(output_dir)
+    if not output_path.is_dir():
+        return None
+    checkpoints = [
+        d for d in output_path.iterdir()
+        if d.is_dir() and re.match(r"^checkpoint-\d+$", d.name)
+    ]
+    if not checkpoints:
+        return None
+    last = max(checkpoints, key=lambda d: int(d.name.split("-")[1]))
+    return str(last)
 
 
 def main():
@@ -97,7 +113,7 @@ def main():
         train_dataset=dataset,
     )
 
-    trainer.train()
+    trainer.train(resume_from_checkpoint=get_last_checkpoint(args.output_dir))
     trainer.save_model(args.output_dir)
 
 
