@@ -8,7 +8,7 @@ set -euo pipefail
 
 # ---- 参数配置（直接在此修改） ----
 MODEL_PATH="models/Qwen3-4B"
-DATA_PATH="data/pdp25k"
+DATA_PATH="data/pdp10k"
 OUTPUT_DIR="results/grpo"
 
 # 生成

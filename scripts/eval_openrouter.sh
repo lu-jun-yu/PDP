@@ -27,7 +27,7 @@ fi
 
 # ---- 参数配置（直接在此修改） ----
 MODEL="qwen/qwen3-30b-a3b-thinking-2507"         # OpenRouter 模型标识符
-DATA_PATH="data/pdp25k"
+DATA_PATH="data/pdp10k"
 MAX_TOKENS=2048
 TEMPERATURE=0.6
 TOP_P=0.95

@@ -6,7 +6,7 @@ train/grpo.py
 使用 trl GRPOTrainer + vLLM 对 PDP 数据集进行 GRPO (RLVR) 训练。
 
 Usage:
-    python train/grpo.py --model-path models/Qwen3-0.6B --data-path data/pdp25k
+    python train/grpo.py --model-path models/Qwen3-0.6B --data-path data/pdp10k
 """
 
 import argparse
@@ -42,7 +42,7 @@ def add_prompt(example):
 def main():
     parser = argparse.ArgumentParser(description="PDP GRPO 训练脚本")
     parser.add_argument("--model-path", default="models/Qwen3-0.6B")
-    parser.add_argument("--data-path", default="data/pdp25k")
+    parser.add_argument("--data-path", default="data/pdp10k")
     parser.add_argument("--output-dir", default="results/grpo")
     # 生成
     parser.add_argument("--max-completion-length", type=int, default=2048)
@@ -72,6 +72,7 @@ def main():
         max_prompt_length=args.max_prompt_length,
         num_generations=args.num_generations,
         use_vllm=True,
+        vllm_mode="colocate",
         vllm_gpu_memory_utilization=args.vllm_gpu_memory_utilization,
         num_train_epochs=args.num_train_epochs,
         per_device_train_batch_size=args.per_device_train_batch_size,

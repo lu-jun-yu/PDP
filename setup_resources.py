@@ -84,7 +84,7 @@ def main():
         #     'desc': '设置 Weights & Biases API Key'
         # },
         {
-            'cmd': f"huggingface-cli download Julian2002/pdp25k --local-dir /root/data/pdp25k",
+            'cmd': f"huggingface-cli download Julian2002/pdp10k --local-dir /root/data/pdp10k",
             'desc': '下载 Qwen3-4B 模型'
         },
         {

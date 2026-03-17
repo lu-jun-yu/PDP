@@ -136,8 +136,8 @@ def main():
     )
     parser.add_argument(
         "--data-path",
-        default="data/pdp25k",
-        help="HuggingFace 数据集路径 (default: data/pdp25k)",
+        default="data/pdp10k",
+        help="HuggingFace 数据集路径 (default: data/pdp10k)",
     )
     parser.add_argument(
         "--max-model-len",

@@ -30,15 +30,15 @@ if (-not $env:OPENROUTER_API_KEY) {
 }
 
 # ---- 参数配置（直接在此修改） ----
-$MODEL       = "deepseek/deepseek-v3.2"    # qwen/qwen3-30b-a3b-thinking-2507
-$DATA_PATH   = "data/pdp25k"
+$MODEL       = "deepseek/deepseek-v3.2"
+$DATA_PATH   = "data/pdp10k"
 $MAX_TOKENS  = 2048
 $TEMPERATURE = 1.0
 $TOP_P       = 0.95
 $TOP_K       = 20
 $MIN_P       = 0.0
 $CONCURRENCY = 5                   # 并发请求数
-$BATCH_SIZE  = 5                 # 分批大小
+$BATCH_SIZE  = 5                   # 分批大小
 $OUTPUT_DIR  = "results"
 
 # # ---- 运行评估 (baseline) ----
