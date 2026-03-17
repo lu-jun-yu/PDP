@@ -719,6 +719,7 @@ def process_split(input_dir: str, output_path: str, split_name: str, limit: int 
     ]
 
     results = []
+    seen_ids = set()  # 按 id 去重
     stats = Counter()
     unknown_stats = Counter()
 
@@ -747,8 +748,15 @@ def process_split(input_dir: str, output_path: str, split_name: str, limit: int 
                             unknown_stats[w] += 1
                     else:
                         record.pop("_warnings", None)
-                        results.append(record)
-                        stats[record["decision"]] += 1
+                        doc_id = record.get("id", "")
+                        if doc_id and doc_id in seen_ids:
+                            unknown_stats["duplicate_id"] += 1
+                            logger.debug(f"  跳过重复 ID: {doc_id} ({fname})")
+                        else:
+                            if doc_id:
+                                seen_ids.add(doc_id)
+                            results.append(record)
+                            stats[record["decision"]] += 1
                 else:
                     _save_to_unknown(fpath, unknown_dir, "empty_or_unparseable")
                     unknown_stats["empty_or_unparseable"] += 1
@@ -852,6 +860,7 @@ def main():
         logger.info(f"按日期划分模式: split_date={args.split_date}, 共 {len(all_files)} 个文件")
 
         train_results, test_results = [], []
+        train_seen_ids, test_seen_ids = set(), set()  # 按 id 分别去重
         stats = {"train": Counter(), "test": Counter()}
         unknown_dir = os.path.join(args.output_dir, "unknown")
         unknown_stats = Counter()
@@ -873,12 +882,25 @@ def main():
                     else:
                         record.pop("_warnings", None)
                         date_str = record["meta"].get("date")
+                        doc_id = record.get("id", "")
                         if date_str and date_str < args.split_date:
-                            train_results.append(record)
-                            stats["train"][record["decision"]] += 1
+                            if doc_id and doc_id in train_seen_ids:
+                                unknown_stats["duplicate_id"] += 1
+                                logger.debug(f"  跳过重复 ID (train): {doc_id}")
+                            else:
+                                if doc_id:
+                                    train_seen_ids.add(doc_id)
+                                train_results.append(record)
+                                stats["train"][record["decision"]] += 1
                         else:
-                            test_results.append(record)
-                            stats["test"][record["decision"]] += 1
+                            if doc_id and doc_id in test_seen_ids:
+                                unknown_stats["duplicate_id"] += 1
+                                logger.debug(f"  跳过重复 ID (test): {doc_id}")
+                            else:
+                                if doc_id:
+                                    test_seen_ids.add(doc_id)
+                                test_results.append(record)
+                                stats["test"][record["decision"]] += 1
                 else:
                     _save_to_unknown(fpath, unknown_dir, "empty_or_unparseable")
                     unknown_stats["empty_or_unparseable"] += 1

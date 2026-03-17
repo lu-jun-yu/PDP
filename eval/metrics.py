@@ -5,7 +5,7 @@ eval/metrics.py
 
 PDP 评估指标计算模块。
 
-既可作为库被 evaluate.py 导入，也可独立运行，从已有的 details_*.json
+既可作为库被 evaluate_vllm.py 导入，也可独立运行，从已有的 details_*.json
 重新计算并更新 metrics.json。
 
 独立用法:

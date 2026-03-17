@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-eval/evaluate.py
+eval/evaluate_vllm.py
 
 使用 vLLM 对 PDP 数据集进行评估。
 
@@ -14,11 +14,11 @@ eval/evaluate.py
   - 第二级（四分类）：起诉、相对不起诉、法定不起诉、存疑不起诉
 
 Usage:
-    python eval/evaluate.py
-    python eval/evaluate.py --model-path models/Qwen3-0.6B
-    python eval/evaluate.py --batch-size 500          # 分批推理，支持断点续推
-    python eval/evaluate.py --no-resume               # 忽略断点，从头评估
-    python eval/evaluate.py --with-definitions        # 消融实验：提示含不起诉定义
+    python eval/evaluate_vllm.py
+    python eval/evaluate_vllm.py --model-path models/Qwen3-0.6B
+    python eval/evaluate_vllm.py --batch-size 500          # 分批推理，支持断点续推
+    python eval/evaluate_vllm.py --no-resume               # 忽略断点，从头评估
+    python eval/evaluate_vllm.py --with-definitions        # 消融实验：提示含不起诉定义
 """
 
 import argparse

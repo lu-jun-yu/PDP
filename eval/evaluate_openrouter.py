@@ -47,7 +47,7 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 
 # ============================================================
-#  输出解析（与 evaluate.py 保持一致）
+#  输出解析
 # ============================================================
 
 def _strip_think_block(text: str) -> str:
@@ -129,10 +129,10 @@ async def call_openrouter(
     model: str,
     messages: list[dict],
     max_tokens: int,
-    temperature: float,
-    top_p: float,
-    top_k: int,
-    min_p: float,
+    temperature: float | None,
+    top_p: float | None,
+    top_k: int | None,
+    min_p: float | None,
     semaphore: asyncio.Semaphore,
     max_retries: int = 5,
 ) -> str:
@@ -140,19 +140,35 @@ async def call_openrouter(
     async with semaphore:
         for attempt in range(max_retries):
             try:
-                response = await client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                    top_p=top_p,
-                    extra_body={"top_k": top_k, "min_p": min_p},
-                )
+                # 只传入用户显式指定的参数，其余由 API/模型使用默认值
+                kwargs = dict(model=model, messages=messages, max_tokens=max_tokens)
+                if temperature is not None:
+                    kwargs["temperature"] = temperature
+                if top_p is not None:
+                    kwargs["top_p"] = top_p
+                extra = {}
+                if top_k is not None:
+                    extra["top_k"] = top_k
+                if min_p is not None:
+                    extra["min_p"] = min_p
+                if extra:
+                    kwargs["extra_body"] = extra
+
+                response = await client.chat.completions.create(**kwargs)
                 return response.choices[0].message.content or ""
             except Exception as e:
                 err_msg = str(e)
-                # 速率限制或服务器错误时重试
-                if "429" in err_msg or "502" in err_msg or "503" in err_msg:
+                is_last = attempt == max_retries - 1
+                # 速率限制、服务器错误、超时、连接错误 → 可重试
+                retryable = (
+                    "429" in err_msg
+                    or "502" in err_msg
+                    or "503" in err_msg
+                    or "timed out" in err_msg.lower()
+                    or "timeout" in err_msg.lower()
+                    or "connection" in err_msg.lower()
+                )
+                if retryable and not is_last:
                     wait = min(2 ** attempt * 2, 60)
                     logger.warning(
                         f"API 请求失败 (attempt {attempt + 1}/{max_retries}): "
@@ -172,10 +188,10 @@ async def run_batch(
     indices: list[int],
     dataset,
     max_tokens: int,
-    temperature: float,
-    top_p: float,
-    top_k: int,
-    min_p: float,
+    temperature: float | None,
+    top_p: float | None,
+    top_k: int | None,
+    min_p: float | None,
     concurrency: int,
     checkpoint_file: str,
     completed: dict,
@@ -253,26 +269,26 @@ def main():
     parser.add_argument(
         "--temperature",
         type=float,
-        default=0.6,
-        help="生成温度 (default: 0.6)",
+        default=None,
+        help="生成温度 (不指定则使用模型/API 默认值)",
     )
     parser.add_argument(
         "--top-p",
         type=float,
-        default=0.95,
-        help="Top-P 采样 (default: 0.95)",
+        default=None,
+        help="Top-P 采样 (不指定则使用模型/API 默认值)",
     )
     parser.add_argument(
         "--top-k",
         type=int,
-        default=20,
-        help="Top-K 采样 (default: 20)",
+        default=None,
+        help="Top-K 采样 (不指定则使用模型/API 默认值)",
     )
     parser.add_argument(
         "--min-p",
         type=float,
-        default=0.0,
-        help="Min-P 采样 (default: 0.0)",
+        default=None,
+        help="Min-P 采样 (不指定则使用模型/API 默认值)",
     )
     parser.add_argument(
         "--concurrency",
@@ -319,6 +335,8 @@ def main():
     client = AsyncOpenAI(
         base_url=OPENROUTER_BASE_URL,
         api_key=api_key,
+        timeout=120.0,      # 连接+读取超时 120 秒（默认太短）
+        max_retries=0,       # 关闭 SDK 内置重试，由 call_openrouter 自行控制
     )
 
     # ---- 加载数据 ----

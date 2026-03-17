@@ -30,42 +30,42 @@ if (-not $env:OPENROUTER_API_KEY) {
 }
 
 # ---- 参数配置（直接在此修改） ----
-$MODEL       = "qwen/qwen3-30b-a3b-thinking-2507"    # OpenRouter 模型标识符
+$MODEL       = "deepseek/deepseek-v3.2"    # qwen/qwen3-30b-a3b-thinking-2507
 $DATA_PATH   = "data/pdp25k"
 $MAX_TOKENS  = 2048
-$TEMPERATURE = 0.6
+$TEMPERATURE = 1.0
 $TOP_P       = 0.95
 $TOP_K       = 20
 $MIN_P       = 0.0
 $CONCURRENCY = 5                   # 并发请求数
-$BATCH_SIZE  = 100                 # 分批大小
+$BATCH_SIZE  = 5                 # 分批大小
 $OUTPUT_DIR  = "results"
 
-# ---- 运行评估 (baseline) ----
-python eval/evaluate_openrouter.py `
-    --model $MODEL `
-    --data-path $DATA_PATH `
-    --max-tokens $MAX_TOKENS `
-    --temperature $TEMPERATURE `
-    --top-p $TOP_P `
-    --top-k $TOP_K `
-    --min-p $MIN_P `
-    --concurrency $CONCURRENCY `
-    --batch-size $BATCH_SIZE `
-    --output-dir $OUTPUT_DIR
+# # ---- 运行评估 (baseline) ----
+# python eval/evaluate_openrouter.py `
+#     --model $MODEL `
+#     --data-path $DATA_PATH `
+#     --max-tokens $MAX_TOKENS `
+#     --temperature $TEMPERATURE `
+#     --top-p $TOP_P `
+#     --top-k $TOP_K `
+#     --min-p $MIN_P `
+#     --concurrency $CONCURRENCY `
+#     --batch-size $BATCH_SIZE `
+#     --output-dir $OUTPUT_DIR
 
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+# if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 # ---- 运行评估 (with definitions) ----
 python eval/evaluate_openrouter.py `
     --model $MODEL `
     --data-path $DATA_PATH `
     --max-tokens $MAX_TOKENS `
-    --temperature $TEMPERATURE `
-    --top-p $TOP_P `
-    --top-k $TOP_K `
-    --min-p $MIN_P `
     --concurrency $CONCURRENCY `
     --batch-size $BATCH_SIZE `
     --output-dir $OUTPUT_DIR `
-    --with-definitions
+    --with-definitions `
+    # --temperature $TEMPERATURE `
+    # --top-p $TOP_P `
+    # --top-k $TOP_K `
+    # --min-p $MIN_P `

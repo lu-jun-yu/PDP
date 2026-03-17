@@ -18,7 +18,7 @@ OUTPUT_DIR="results"
 BATCH_SIZE=500             # 分批推理批次大小，0 表示一次性全部推理
 
 # ---- 运行评估 ----
-python eval/evaluate.py \
+python eval/evaluate_vllm.py \
     --model-path "$MODEL_PATH" \
     --data-path "$DATA_PATH" \
     --max-model-len "$MAX_MODEL_LEN" \
@@ -30,7 +30,7 @@ python eval/evaluate.py \
     --batch-size "$BATCH_SIZE"
 
 # ---- 运行评估 with definitions ----
-python eval/evaluate.py \
+python eval/evaluate_vllm.py \
     --model-path "$MODEL_PATH" \
     --data-path "$DATA_PATH" \
     --max-model-len "$MAX_MODEL_LEN" \
