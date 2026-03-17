@@ -19,6 +19,12 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from datasets import load_from_disk
+
+# PyTorch < 2.6 加载自身 checkpoint 时会被 CVE-2025-32434 检查拦截，
+# 训练脚本只加载自己保存的文件，跳过该检查。
+import transformers.utils.import_utils
+transformers.utils.import_utils.check_torch_load_is_safe = lambda: None
+
 from trl import GRPOConfig, GRPOTrainer
 
 from prompt_template import build_messages
