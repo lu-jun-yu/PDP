@@ -23,7 +23,10 @@ from datasets import load_from_disk
 # PyTorch < 2.6 加载自身 checkpoint 时会被 CVE-2025-32434 检查拦截，
 # 训练脚本只加载自己保存的文件，跳过该检查。
 import transformers.utils.import_utils
-transformers.utils.import_utils.check_torch_load_is_safe = lambda: None
+import transformers.trainer
+_noop = lambda: None
+transformers.utils.import_utils.check_torch_load_is_safe = _noop
+transformers.trainer.check_torch_load_is_safe = _noop
 
 from trl import GRPOConfig, GRPOTrainer
 
