@@ -1,19 +1,23 @@
 #!/bin/bash
 # =============================================================
-#  scripts/run_dapo.sh — PDP DAPO 训练启动脚本
+#  scripts/run_dapo.sh — PDP DAPO 多卡训练启动脚本 (DeepSpeed ZeRO-1)
 #  用法: bash scripts/run_dapo.sh
 # =============================================================
 
 set -euo pipefail
 
+# ---- 多卡配置 ----
+NUM_GPUS=$(nvidia-smi -L 2>/dev/null | wc -l)
+echo "检测到 ${NUM_GPUS} 张 GPU"
+
 # ---- 参数配置（直接在此修改） ----
-MODEL_PATH="models/Qwen3-4B"
+MODEL_PATH="models/Qwen3-0.6B"
 DATA_PATH="data/pdp10k"
-OUTPUT_DIR="results/DAPO-4B-0319"
+OUTPUT_DIR="results/DAPO-0.6B-0319"
 
 # 生成
 MAX_COMPLETION_LENGTH=2048
-MAX_PROMPT_LENGTH=3072
+MAX_PROMPT_LENGTH=2048
 NUM_GENERATIONS=8
 
 # vLLM
@@ -21,8 +25,8 @@ VLLM_GPU_MEM_UTIL=0.5
 
 # 训练
 NUM_EPOCHS=1
-BATCH_SIZE=4
-GRAD_ACCUM=4
+BATCH_SIZE=2
+GRAD_ACCUM=8
 LR=5e-6
 
 # DAPO 超参
@@ -30,15 +34,17 @@ EPSILON=0.2
 EPSILON_HIGH=0.28
 
 # 日志与保存
-LOGGING_STEPS=10
-SAVE_STEPS=100
+LOGGING_STEPS=16
+SAVE_STEPS=1024
 
 # wandb
 WANDB_PROJECT="PDP"
-RUN_NAME="DAPO-4B-0319"
+RUN_NAME="DAPO-0.6B-0319"
 
 # ---- 运行训练 ----
-python train/dapo.py \
+deepspeed --num_gpus "$NUM_GPUS" \
+    train/dapo.py \
+    --deepspeed configs/ds_zero1.json \
     --model-path "$MODEL_PATH" \
     --data-path "$DATA_PATH" \
     --output-dir "$OUTPUT_DIR" \

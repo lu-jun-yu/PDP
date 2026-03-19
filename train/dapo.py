@@ -15,6 +15,7 @@ Usage:
 """
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -40,7 +41,6 @@ from reward_function import (
     format_reward_func,
     decision_reward_func,
     process_reward_func,
-    citation_reward_func,
 )
 
 
@@ -98,7 +98,17 @@ def main():
                         help="wandb 项目名称")
     parser.add_argument("--run-name", default=None,
                         help="wandb run 名称（默认自动生成）")
+    # DeepSpeed
+    parser.add_argument("--deepspeed", default=None,
+                        help="DeepSpeed 配置文件路径（多卡训练时使用）")
+    # DeepSpeed 启动器会注入 --local_rank 参数
+    parser.add_argument("--local_rank", type=int, default=-1,
+                        help="DeepSpeed 注入的 local rank（勿手动设置）")
     args = parser.parse_args()
+
+    # 设置 wandb 项目名称（通过环境变量传递给 wandb）
+    if args.wandb_project:
+        os.environ["WANDB_PROJECT"] = args.wandb_project
 
     # ---- 数据集 ----
     dataset = load_from_disk(args.data_path)["train"]
@@ -137,6 +147,8 @@ def main():
         # wandb 监控
         report_to="wandb",
         run_name=args.run_name,
+        # DeepSpeed
+        deepspeed=args.deepspeed,
     )
 
     # ---- 训练 ----
@@ -146,7 +158,6 @@ def main():
             format_reward_func,
             decision_reward_func,
             process_reward_func,
-            citation_reward_func,
         ],
         args=config,
         train_dataset=dataset,

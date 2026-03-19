@@ -3,11 +3,10 @@
 """
 train/reward_function.py
 
-DAPO 训练的奖励函数，共四项：
-  1. format_reward   — 严格格式匹配奖励 (0 / 2)，完全匹配 prompt_template 模板
-  2. decision_reward  — 结果奖励: decision 正确与否 (0 / 2)
-  3. process_reward   — 过程奖励: 法条 F1 (0 / 1)
-  4. citation_reward  — 法条引用一致性奖励: 审查分析引用 vs 适用法条声明 的 F1
+DAPO 训练的奖励函数，共三项：
+  1. format_reward   — 严格格式匹配奖励 (0 / 1)
+  2. decision_reward  — 结果奖励: 起诉/不起诉大类 +1，不起诉子类精确匹配再 +1 (0 / 1 / 2)
+  3. process_reward   — 过程奖励: 法条 F1 (0 ~ 1)
 """
 
 import re
@@ -88,34 +87,6 @@ def _parse_answer(text: str) -> dict:
 
 
 # ============================================================
-#  辅助：审查分析中引用的法条提取
-# ============================================================
-
-_ARTICLE_PAT = r"(第[零一二三四五六七八九十百千\d]+条(?:第[零一二三四五六七八九十百千\d]+款)?)"
-
-
-def _extract_cited_articles(text: str) -> set:
-    """从【审查分析】段落正则提取引用的法条，返回带前缀的混合集合。"""
-    answer_block = _strip_think_block(text)
-
-    analysis = re.search(
-        r"【审查分析】(.*?)(?=【最终结论】|$)", answer_block, re.DOTALL
-    )
-    if not analysis:
-        return set()
-
-    body = analysis.group(1)
-    mixed = set()
-    for a in re.findall(r"刑法》?" + _ARTICLE_PAT, body):
-        mixed.add(f"cl:{a}")
-    for a in re.findall(r"刑事诉讼法》?" + _ARTICLE_PAT, body):
-        mixed.add(f"cpl:{a}")
-    for a in re.findall(r"刑事诉讼规则》?" + _ARTICLE_PAT, body):
-        mixed.add(f"cpr:{a}")
-    return mixed
-
-
-# ============================================================
 #  辅助：严格格式检查
 # ============================================================
 
@@ -186,17 +157,35 @@ def _check_format(text: str) -> bool:
 # ============================================================
 
 def format_reward_func(completions, **kwargs) -> list[float]:
-    """格式匹配奖励：严格匹配得 2，否则 0。"""
-    return [2.0 if _check_format(_get_content(c)) else 0.0 for c in completions]
+    """格式匹配奖励：严格匹配得 1，否则 0。"""
+    return [1.0 if _check_format(_get_content(c)) else 0.0 for c in completions]
+
+
+_NON_PROSECUTE = {"相对不起诉", "法定不起诉", "存疑不起诉"}
 
 
 def decision_reward_func(completions, **kwargs) -> list[float]:
-    """结果奖励：decision 正确得 2，错误得 0。"""
+    """
+    结果奖励（0 / 1 / 2）：
+      - 预测与参考同属起诉/不起诉大类 → +1
+      - 若参考是不起诉且预测完全匹配 → 再 +1
+    起诉正确上限 1，不起诉精确匹配上限 2。
+    """
     ref_decisions = kwargs["decision"]
     rewards = []
     for c, ref in zip(completions, ref_decisions):
         parsed = _parse_answer(_get_content(c))
-        rewards.append(2.0 if parsed["decision"] == ref else 0.0)
+        pred = parsed["decision"]
+        score = 0.0
+        ref_is_np = ref in _NON_PROSECUTE
+        pred_is_np = pred in _NON_PROSECUTE
+        # 同属起诉/不起诉大类
+        if ref_is_np == pred_is_np:
+            score += 1.0
+            # 不起诉子类精确匹配
+            if ref_is_np and pred == ref:
+                score += 1.0
+        rewards.append(score)
     return rewards
 
 
@@ -216,24 +205,5 @@ def process_reward_func(completions, **kwargs) -> list[float]:
         _, _, f1_arts = _set_prf1(pred_arts, gold_arts)
 
         rewards.append(f1_arts)
-
-    return rewards
-
-
-def citation_reward_func(completions, **kwargs) -> list[float]:
-    """
-    法条引用一致性奖励（0~1）：
-    审查分析中引用的法条 vs 输出自身【适用法条】中声明的法条，
-    混合 F1（带法律前缀）。
-    """
-    rewards = []
-    for c in completions:
-        text = _get_content(c)
-        parsed = _parse_answer(text)
-
-        cited = _extract_cited_articles(text)
-        declared = set(parsed["relevant_articles"])
-        _, _, f1 = _set_prf1(cited, declared)
-        rewards.append(f1)
 
     return rewards
