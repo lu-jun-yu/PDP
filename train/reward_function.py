@@ -3,8 +3,8 @@
 """
 train/reward_function.py
 
-GRPO 训练的奖励函数，共三项：
-  1. format_reward   — 格式匹配奖励 (0 / 2)
+DAPO 训练的奖励函数，共四项：
+  1. format_reward   — 严格格式匹配奖励 (0 / 2)，完全匹配 prompt_template 模板
   2. decision_reward  — 结果奖励: decision 正确与否 (0 / 2)
   3. process_reward   — 过程奖励: 法条 F1 (0 / 1)
   4. citation_reward  — 法条引用一致性奖励: 审查分析引用 vs 适用法条声明 的 F1
@@ -116,38 +116,69 @@ def _extract_cited_articles(text: str) -> set:
 
 
 # ============================================================
-#  辅助：格式检查
+#  辅助：严格格式检查
 # ============================================================
 
+# 合法的决定类型
+_VALID_DECISIONS = {"起诉", "相对不起诉", "法定不起诉", "存疑不起诉"}
+
+# 法条条目：第X条（第X款）格式，多条用"、"分隔
+_ART_ITEM = r"第[零一二三四五六七八九十百千\d]+条(?:第[零一二三四五六七八九十百千\d]+款)?"
+_ART_LIST = _ART_ITEM + r"(?:、" + _ART_ITEM + r")*"
+
+# 单行法律条目：刑法/刑事诉讼法/刑事诉讼规则：第X条、第X条
+_LAW_LINE = r"(?:刑法|刑事诉讼法|刑事诉讼规则)[：:]" + _ART_LIST
+
+# 完整格式正则，严格匹配 prompt_template 中的示例结构：
+#   【适用法条】\n
+#   刑法：第X条、第X条\n
+#   (可选更多法律行)\n
+#   \n
+#   【审查分析】\n
+#   ...分析文本...\n
+#   \n
+#   【最终结论】\n
+#   决定：四选一
+_STRICT_FORMAT_RE = re.compile(
+    r"【适用法条】\n"
+    r"(?:" + _LAW_LINE + r"\n)+"           # 至少一行法条，每行以换行结尾
+    r"\n"                                   # 段落间空行
+    r"【审查分析】\n"
+    r"(?:(?!【).)+\n"                       # 分析正文（至少一个字符），不含【标签
+    r"\n"                                   # 段落间空行
+    r"【最终结论】\n"
+    r"决定[：:](?:起诉|相对不起诉|法定不起诉|存疑不起诉)"  # 决定行
+    r"\s*$",                                # 末尾允许空白
+    re.DOTALL,
+)
+
+
 def _check_format(text: str) -> bool:
-    """检查输出是否符合预定格式：<think> 推理 + 三个结构化段落。"""
+    """
+    严格格式检查，完全匹配 prompt_template 中给出的输出模板。
+
+    要求：
+    1. 去除 <think>...</think> 后的正文必须严格以【适用法条】开头
+    2. 三个段落标签各出现恰好一次，顺序固定
+    3. 【适用法条】后每行格式为 "法律名：第X条、第X条"
+    4. 段落之间有且仅有一个空行
+    5. 【最终结论】后紧跟 "决定：" + 四种合法决定之一
+    6. 不允许出现任何额外的【...】标签
+    """
     answer_block = _strip_think_block(text)
 
-    # 三个段落标题
+    # 三个标签各出现恰好一次
     for tag in ("【适用法条】", "【审查分析】", "【最终结论】"):
-        if tag not in answer_block:
+        if answer_block.count(tag) != 1:
             return False
 
-    # 适用法条须至少包含一种法律的法条
-    art_sec = re.search(r"【适用法条】(.*?)【审查分析】", answer_block, re.DOTALL)
-    if not art_sec:
-        return False
-    has_any_law = (
-        re.search(r"刑法[：:]", art_sec.group(1))
-        or re.search(r"刑事诉讼法[：:]", art_sec.group(1))
-        or re.search(r"刑事诉讼规则[：:]", art_sec.group(1))
-    )
-    if not has_any_law:
+    # 不允许出现除三个合法标签外的其他【...】标签
+    all_brackets = re.findall(r"【[^】]*】", answer_block)
+    if len(all_brackets) != 3:
         return False
 
-    # 最终结论须包含决定
-    con_sec = re.search(r"【最终结论】(.*)", answer_block, re.DOTALL)
-    if not con_sec:
-        return False
-    if not re.search(r"决定[：:]", con_sec.group(1)):
-        return False
-
-    return True
+    # 用完整正则匹配
+    return _STRICT_FORMAT_RE.match(answer_block) is not None
 
 
 # ============================================================
