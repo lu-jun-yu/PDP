@@ -13,7 +13,7 @@ echo "检测到 ${NUM_GPUS} 张 GPU"
 # ---- 参数配置（直接在此修改） ----
 MODEL_PATH="models/Qwen3-0.6B"
 DATA_PATH="data/pdp10k"
-OUTPUT_DIR="results/DAPO-0.6B-0319"
+OUTPUT_DIR="checkpoints/DAPO-0.6B-0320"
 
 # 生成
 MAX_COMPLETION_LENGTH=2048
@@ -26,8 +26,8 @@ VLLM_GPU_MEM_UTIL=0.5
 # 训练
 NUM_EPOCHS=1
 BATCH_SIZE=2
-GRAD_ACCUM=8
-LR=5e-6
+GRAD_ACCUM=32
+LR=1e-6
 
 # DAPO 超参
 EPSILON=0.2
@@ -39,7 +39,7 @@ SAVE_STEPS=1024
 
 # wandb
 WANDB_PROJECT="PDP"
-RUN_NAME="DAPO-0.6B-0319"
+RUN_NAME="DAPO-0.6B-0320"
 
 # ---- 运行训练 ----
 deepspeed --num_gpus "$NUM_GPUS" \
