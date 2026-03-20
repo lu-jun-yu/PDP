@@ -397,6 +397,7 @@ def main():
     logger.info(f"指标已保存: {metrics_file}")
 
     # 构建详细预测并按 参考decision-预测decision 分组保存
+    VALID_DECISIONS = {"起诉", "相对不起诉", "法定不起诉", "存疑不起诉"}
     details_groups = defaultdict(list)  # key -> list[entry]
     for i in range(len(dataset)):
         record = completed[i]
@@ -415,6 +416,8 @@ def main():
         pred_dec = record["prediction"]["decision"]
         if pred_dec == ref_dec:
             details_groups["正确"].append(entry)
+        elif pred_dec not in VALID_DECISIONS:
+            details_groups["解析错误"].append(entry)
         else:
             key = f"{ref_dec}_{pred_dec}"
             details_groups[key].append(entry)

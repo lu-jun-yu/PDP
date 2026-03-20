@@ -169,7 +169,7 @@ async def call_openrouter(
                     or "connection" in err_msg.lower()
                 )
                 if retryable and not is_last:
-                    wait = min(2 ** attempt * 2, 60)
+                    wait = 4 ** attempt * 4
                     logger.warning(
                         f"API 请求失败 (attempt {attempt + 1}/{max_retries}): "
                         f"{err_msg[:100]}... 等待 {wait}s 后重试"
@@ -518,6 +518,7 @@ def main():
     logger.info(f"指标已保存: {metrics_file}")
 
     # 构建详细预测并按 参考decision-预测decision 分组保存
+    VALID_DECISIONS = {"起诉", "相对不起诉", "法定不起诉", "存疑不起诉"}
     details_groups = defaultdict(list)
     for i in range(len(dataset)):
         record = completed[i]
@@ -536,6 +537,8 @@ def main():
         pred_dec = record["prediction"]["decision"]
         if pred_dec == ref_dec:
             details_groups["正确"].append(entry)
+        elif pred_dec not in VALID_DECISIONS:
+            details_groups["解析错误"].append(entry)
         else:
             key = f"{ref_dec}_{pred_dec}"
             details_groups[key].append(entry)
