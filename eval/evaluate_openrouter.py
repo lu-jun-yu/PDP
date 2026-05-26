@@ -13,7 +13,11 @@ Usage:
     python eval/evaluate_openrouter.py --model qwen/qwen3-8b
     python eval/evaluate_openrouter.py --model deepseek/deepseek-chat-v3-0324 --concurrency 10
     python eval/evaluate_openrouter.py --model google/gemini-2.0-flash-001 --no-resume
-    python eval/evaluate_openrouter.py --model qwen/qwen3-8b --with-definitions
+    python eval/evaluate_openrouter.py --model qwen/qwen3-8b --prompt-variant definitions
+    python eval/evaluate_openrouter.py --model qwen/qwen3-8b --prompt-variant one_shot
+    python eval/evaluate_openrouter.py --model qwen/qwen3-8b --reasoning-effort auto
+    python eval/evaluate_openrouter.py --model qwen/qwen3-8b --reasoning-effort none
+    python eval/evaluate_openrouter.py --model qwen/qwen3-8b --reasoning-effort high
 """
 
 import argparse
@@ -33,8 +37,12 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from datasets import load_from_disk
 
-from prompt_template import build_messages
-from eval.metrics import compute_metrics, build_metrics_json
+from prompt_template import PROMPT_VARIANTS, build_messages
+from eval.metrics import (
+    build_metrics_markdown,
+    compute_metrics,
+    normalize_decision_label,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -133,10 +141,16 @@ async def call_openrouter(
     top_p: float | None,
     top_k: int | None,
     min_p: float | None,
+    reasoning_effort: str,
     semaphore: asyncio.Semaphore,
     max_retries: int = 5,
-) -> str:
+    reasoning_max_tokens: int | None = None,
+) -> dict:
     """调用 OpenRouter API，带信号量控制并发和指数退避重试。"""
+    if reasoning_max_tokens is not None and reasoning_effort != "auto":
+        raise ValueError(
+            "call_openrouter: reasoning_max_tokens 与 reasoning_effort（非 auto）不能同时指定"
+        )
     async with semaphore:
         for attempt in range(max_retries):
             try:
@@ -151,22 +165,80 @@ async def call_openrouter(
                     extra["top_k"] = top_k
                 if min_p is not None:
                     extra["min_p"] = min_p
+                # reasoning.max_tokens 与 reasoning.effort 二选一（OpenRouter 统一参数）。
+                # auto + 无 max_tokens: 不显式传 reasoning，使用模型/提供商默认。
+                # OpenRouter / Claude 4.6 预算式示例为 enabled + max_tokens；仅 max_tokens 时部分路由可能不按预算生效。
+                if reasoning_max_tokens is not None:
+                    extra["reasoning"] = {
+                        "enabled": True,
+                        "max_tokens": reasoning_max_tokens,
+                    }
+                elif reasoning_effort != "auto":
+                    extra["reasoning"] = {"effort": reasoning_effort}
+                # 请求返回 reasoning 字段（若模型/路由支持）
+                extra["include_reasoning"] = True
                 if extra:
                     kwargs["extra_body"] = extra
 
                 response = await client.chat.completions.create(**kwargs)
-                return response.choices[0].message.content or ""
+                choices = getattr(response, "choices", None) or []
+                if not choices:
+                    raise ValueError(
+                        "OpenRouter returned empty choices (transient or unsupported params)"
+                    )
+                first = choices[0]
+                if first is None:
+                    raise ValueError("OpenRouter returned null choice[0]")
+                message = getattr(first, "message", None)
+                if message is None:
+                    raise ValueError("OpenRouter returned empty message in choice[0]")
+                content = message.content or ""
+
+                # OpenRouter：reasoning 与 reasoning_content 等价；部分路由只填其一。
+                reasoning = (
+                    getattr(message, "reasoning", None)
+                    or getattr(message, "reasoning_content", None)
+                    or ""
+                )
+                if not reasoning:
+                    # 某些模型把推理放在 reasoning_details 结构中
+                    details = getattr(message, "reasoning_details", None) or []
+                    parts = []
+                    for item in details:
+                        if isinstance(item, dict):
+                            sm = item.get("summary")
+                            if isinstance(sm, list):
+                                for x in sm:
+                                    if isinstance(x, str) and x.strip():
+                                        parts.append(x.strip())
+                            elif isinstance(sm, str) and sm.strip():
+                                parts.append(sm.strip())
+                            elif isinstance(item.get("text"), str) and item.get("text").strip():
+                                parts.append(item["text"].strip())
+                    reasoning = "\n".join(parts).strip()
+
+                return {
+                    "content": content,
+                    "reasoning": reasoning,
+                }
             except Exception as e:
                 err_msg = str(e)
                 is_last = attempt == max_retries - 1
                 # 速率限制、服务器错误、超时、连接错误 → 可重试
                 retryable = (
                     "429" in err_msg
+                    or "500" in err_msg
                     or "502" in err_msg
                     or "503" in err_msg
                     or "timed out" in err_msg.lower()
                     or "timeout" in err_msg.lower()
                     or "connection" in err_msg.lower()
+                    or "jsondecodeerror" in err_msg.lower()
+                    or "expecting value" in err_msg.lower()
+                    or "empty choices" in err_msg.lower()
+                    or "empty message" in err_msg.lower()
+                    or "null choice" in err_msg.lower()
+                    or "'nonetype' object is not subscriptable" in err_msg.lower()
                 )
                 if retryable and not is_last:
                     wait = 4 ** attempt * 4
@@ -192,6 +264,7 @@ async def run_batch(
     top_p: float | None,
     top_k: int | None,
     min_p: float | None,
+    reasoning_effort: str,
     concurrency: int,
     checkpoint_file: str,
     completed: dict,
@@ -202,10 +275,20 @@ async def run_batch(
     async def process_one(pos: int) -> None:
         idx = indices[pos]
         msgs = conversations[pos]
-        generated_text = await call_openrouter(
-            client, model, msgs, max_tokens, temperature,
-            top_p, top_k, min_p, semaphore,
+        generated = await call_openrouter(
+            client,
+            model,
+            msgs,
+            max_tokens,
+            temperature,
+            top_p,
+            top_k,
+            min_p,
+            reasoning_effort,
+            semaphore,
+            reasoning_max_tokens=None,
         )
+        generated_text = generated["content"]
 
         parsed = parse_answer(generated_text)
         sample = dataset[idx]
@@ -222,6 +305,7 @@ async def run_batch(
             "prediction": parsed,
             "reference": ref,
             "raw_reasoning_and_decision": sample["raw_reasoning_and_decision"],
+            "raw_reasoning": generated["reasoning"],
             "raw_output": generated_text,
         }
         completed[idx] = record
@@ -257,8 +341,8 @@ def main():
     )
     parser.add_argument(
         "--data-path",
-        default="data/pdp10k",
-        help="HuggingFace 数据集路径 (default: data/pdp10k)",
+        default="data/pdp4k",
+        help="HuggingFace 数据集路径 (default: data/pdp4k)",
     )
     parser.add_argument(
         "--max-tokens",
@@ -313,9 +397,24 @@ def main():
         help="不使用断点续推，从头开始评估",
     )
     parser.add_argument(
-        "--with-definitions",
-        action="store_true",
-        help="消融实验：在系统提示中加入不起诉类型的定义与适用条件",
+        "--prompt-variant",
+        choices=PROMPT_VARIANTS,
+        default="original",
+        help=(
+            "消融实验 prompt 变体: original=原始prompt, "
+            "definitions=原始prompt+definitions(prompt engineering), "
+            "one_shot=原始prompt+one-shot learning(in-context learning) "
+            "(default: original)"
+        ),
+    )
+    parser.add_argument(
+        "--reasoning-effort",
+        choices=["auto", "none", "low", "medium", "high", "xhigh"],
+        default="auto",
+        help=(
+            "推理预算档位: auto=使用模型默认预算, none=关闭推理, "
+            "low/medium/high/xhigh=显式设置推理预算 (default: auto)"
+        ),
     )
     args = parser.parse_args()
 
@@ -354,9 +453,9 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     # 模型名中的 "/" 替换为 "_"，用作文件名
     model_name = args.model.replace("/", "_")
-    variant_tag = "with_def" if args.with_definitions else "baseline"
+    variant_tag = f"{args.prompt_variant}_reasoning_{args.reasoning_effort}"
     checkpoint_file = os.path.join(
-        args.output_dir, f"{model_name}_test_{variant_tag}_checkpoint.jsonl"
+        args.output_dir, f"{model_name}_{variant_tag}_checkpoint.jsonl"
     )
 
     completed = {}  # index -> record
@@ -387,8 +486,24 @@ def main():
 
         # ---- 构建提示 ----
         logger.info("构建提示词...")
-        if args.with_definitions:
-            logger.info("消融实验模式：系统提示中包含不起诉类型定义")
+        variant_desc = {
+            "original": "原始prompt",
+            "definitions": "原始prompt+definitions (prompt engineering)",
+            "one_shot": "原始prompt+one-shot learning (in-context learning)",
+        }[args.prompt_variant]
+        logger.info(f"消融实验模式：{variant_desc}")
+        logger.info(
+            "Reasoning 模式："
+            + (
+                "模型默认预算 (auto)"
+                if args.reasoning_effort == "auto"
+                else (
+                    "关闭 (none)"
+                    if args.reasoning_effort == "none"
+                    else f"开启 (effort={args.reasoning_effort})"
+                )
+            )
+        )
         conversations = []
         for i in remaining_indices:
             sample = dataset[i]
@@ -396,7 +511,7 @@ def main():
                 person_info=sample["person_info"],
                 procedure=sample["procedure"],
                 fact=sample["fact"],
-                with_definitions=args.with_definitions,
+                prompt_variant=args.prompt_variant,
             )
             conversations.append(messages)
 
@@ -434,6 +549,7 @@ def main():
                     top_p=args.top_p,
                     top_k=args.top_k,
                     min_p=args.min_p,
+                    reasoning_effort=args.reasoning_effort,
                     concurrency=args.concurrency,
                     checkpoint_file=checkpoint_file,
                     completed=completed,
@@ -461,12 +577,12 @@ def main():
         record = completed[i]
         predictions.append(record["prediction"])
         references.append(record["reference"])
-        if not record["prediction"]["decision"]:
+        if normalize_decision_label(record["prediction"].get("decision", "")) is None:
             parse_fail_count += 1
 
     if parse_fail_count > 0:
         logger.warning(
-            f"有 {parse_fail_count}/{len(predictions)} 个样本未成功解析出决定字段"
+            f"有 {parse_fail_count}/{len(predictions)} 个样本的决定字段无法归一化为有效标签"
         )
 
     # ---- 计算指标 ----
@@ -488,37 +604,49 @@ def main():
 
     print("\n【结果评估】")
     print(f"  决定 (decision):")
-    print(f"    第一级（起诉/不起诉）Accuracy: {metrics['decision_level1_accuracy']:.4f}")
+    print(
+        "    第一级（起诉/不起诉）"
+        f"Macro-F1: {metrics['decision_level1_macro_f1']:.4f}, "
+        f"Micro-F1: {metrics['decision_level1_micro']['f1']:.4f}"
+    )
     for cls, info in metrics["level1_per_class"].items():
-        print(f"      {cls}: {info['accuracy']:.4f} ({info['count']} 样本)")
-    print(f"    第二级（四分类）Accuracy:       {metrics['decision_level2_accuracy']:.4f}")
+        print(
+            f"      {cls}: F1={info['f1']:.4f} "
+            f"(P={info['precision']:.4f}, R={info['recall']:.4f}, {info['count']} 样本)"
+        )
+    print(
+        "    第二级（四分类）"
+        f"Macro-F1: {metrics['decision_level2_macro_f1']:.4f}, "
+        f"Micro-F1: {metrics['decision_level2_micro']['f1']:.4f}"
+    )
     for cls, info in metrics["decision_per_class"].items():
-        print(f"      {cls}: {info['accuracy']:.4f} ({info['count']} 样本)")
+        print(
+            f"      {cls}: F1={info['f1']:.4f} "
+            f"(P={info['precision']:.4f}, R={info['recall']:.4f}, {info['count']} 样本)"
+        )
 
-    print(f"\n  解析失败率: {parse_fail_count}/{len(predictions)}")
+    print(f"\n  决定解析失败: {metrics['decision_parse_fail_count']}/{metrics['decision_eval_count']}")
     print("=" * 60)
 
     # ---- 保存指标 ----
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     result_subdir = os.path.join(
-        args.output_dir, f"{model_name}_test_{variant_tag}_{timestamp}"
+        args.output_dir, f"{model_name}_{variant_tag}_{timestamp}"
     )
     os.makedirs(result_subdir, exist_ok=True)
 
-    metrics_file = os.path.join(result_subdir, "metrics.json")
-    metrics_output = build_metrics_json(
+    metrics_file = os.path.join(result_subdir, "metrics.md")
+    metrics_output = build_metrics_markdown(
         metrics,
         model=args.model,
         variant=variant_tag,
         num_samples=len(dataset),
-        parse_fail_count=parse_fail_count,
     )
     with open(metrics_file, "w", encoding="utf-8") as f:
-        json.dump(metrics_output, f, ensure_ascii=False, indent=2)
+        f.write(metrics_output)
     logger.info(f"指标已保存: {metrics_file}")
 
     # 构建详细预测并按 参考decision-预测decision 分组保存
-    VALID_DECISIONS = {"起诉", "相对不起诉", "法定不起诉", "存疑不起诉"}
     details_groups = defaultdict(list)
     for i in range(len(dataset)):
         record = completed[i]
@@ -531,20 +659,25 @@ def main():
             "prediction": record["prediction"],
             "reference": record["reference"],
             "raw_reasoning_and_decision": record["raw_reasoning_and_decision"],
+            "raw_reasoning": record.get("raw_reasoning", ""),
             "raw_output": record["raw_output"],
         }
-        ref_dec = record["reference"]["decision"]
-        pred_dec = record["prediction"]["decision"]
-        if pred_dec == ref_dec:
-            details_groups["正确"].append(entry)
-        elif pred_dec not in VALID_DECISIONS:
+        ref_dec = normalize_decision_label(record["reference"].get("decision", ""))
+        pred_dec = normalize_decision_label(record["prediction"].get("decision", ""))
+        if ref_dec is None:
+            details_groups["参考标签解析错误"].append(entry)
+        elif pred_dec is None:
             details_groups["解析错误"].append(entry)
+        elif pred_dec == ref_dec:
+            details_groups["正确"].append(entry)
         else:
             key = f"{ref_dec}_{pred_dec}"
             details_groups[key].append(entry)
 
     for group_name, data in details_groups.items():
-        filepath = os.path.join(result_subdir, f"details_{group_name}.json")
+        # 清理文件名中的非法字符（Windows 不允许 \ / : * ? " < > |）
+        safe_name = re.sub(r'[\\/:*?"<>|]', '_', group_name)[:80]
+        filepath = os.path.join(result_subdir, f"details_{safe_name}.json")
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         logger.info(f"详细结果已保存: {filepath} ({len(data)} 条)")
