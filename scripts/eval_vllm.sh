@@ -7,37 +7,29 @@
 set -euo pipefail
 
 # ---- 参数配置（直接在此修改） ----
-MODEL_PATH="models/Qwen3-4B"
-DATA_PATH="data/pdp10k"
+MODEL_PATH="checkpoints/DAPO-0.6B-0320" # results/grpo
+DATA_PATH="data/pdp4k"
 MAX_MODEL_LEN=4096
-MAX_TOKENS=2048
-TEMPERATURE=0.0
+MAX_TOKENS=4096
 TP_SIZE=1                  # 张量并行数
 GPU_UTIL=0.9
 OUTPUT_DIR="results"
-BATCH_SIZE=500             # 分批推理批次大小，0 表示一次性全部推理
+BATCH_SIZE=100             # 分批推理批次大小，和 OpenRouter 脚本保持一致
 
-# ---- 运行评估 ----
-python eval/evaluate_vllm.py \
-    --model-path "$MODEL_PATH" \
-    --data-path "$DATA_PATH" \
-    --max-model-len "$MAX_MODEL_LEN" \
-    --max-tokens "$MAX_TOKENS" \
-    --temperature "$TEMPERATURE" \
-    --tensor-parallel-size "$TP_SIZE" \
-    --gpu-memory-utilization "$GPU_UTIL" \
-    --output-dir "$OUTPUT_DIR" \
-    --batch-size "$BATCH_SIZE"
+# ---- 运行三种消融实验 ----
+for VARIANT in original definitions one_shot; do
+    echo "============================================================="
+    echo "运行消融实验: $VARIANT"
+    echo "============================================================="
 
-# ---- 运行评估 with definitions ----
-python eval/evaluate_vllm.py \
-    --model-path "$MODEL_PATH" \
-    --data-path "$DATA_PATH" \
-    --max-model-len "$MAX_MODEL_LEN" \
-    --max-tokens "$MAX_TOKENS" \
-    --temperature "$TEMPERATURE" \
-    --tensor-parallel-size "$TP_SIZE" \
-    --gpu-memory-utilization "$GPU_UTIL" \
-    --output-dir "$OUTPUT_DIR" \
-    --batch-size "$BATCH_SIZE" \
-    --with-definitions
+    python eval/evaluate_vllm.py \
+        --model-path "$MODEL_PATH" \
+        --data-path "$DATA_PATH" \
+        --max-model-len "$MAX_MODEL_LEN" \
+        --max-tokens "$MAX_TOKENS" \
+        --tensor-parallel-size "$TP_SIZE" \
+        --gpu-memory-utilization "$GPU_UTIL" \
+        --output-dir "$OUTPUT_DIR" \
+        --batch-size "$BATCH_SIZE" \
+        --prompt-variant "$VARIANT"
+done

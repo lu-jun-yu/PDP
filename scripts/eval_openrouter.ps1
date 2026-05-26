@@ -3,11 +3,19 @@
 #
 #  用法:
 #    .\scripts\eval_openrouter.ps1
+#    .\scripts\eval_openrouter.ps1 -Variants original,definitions,one_shot
 #
 #  前置条件:
 #    1. 设置环境变量 OPENROUTER_API_KEY
 #    2. 安装依赖: pip install openai datasets
 # =============================================================
+
+param(
+    [string[]]$Variants = @("original", "definitions", "one_shot"),
+    [ValidateSet("auto", "none", "low", "medium", "high")]
+    [string]$ReasoningEffort = "auto",
+    [switch]$NoResume
+)
 
 # ---- API Key ----
 if (-not $env:OPENROUTER_API_KEY) {
@@ -29,43 +37,53 @@ if (-not $env:OPENROUTER_API_KEY) {
     exit 1
 }
 
-# ---- 参数配置（直接在此修改） ----
-$MODEL       = "deepseek/deepseek-v3.2"
-$DATA_PATH   = "data/pdp25k"
-$MAX_TOKENS  = 2048
+# ---- 参数配置 ----
+$MODEL       = "deepseek/deepseek-v4-pro"
+$DATA_PATH   = "data/pdp4k"
+$MAX_TOKENS  = 4096
 $TEMPERATURE = 1.0
 $TOP_P       = 0.95
 $TOP_K       = 20
 $MIN_P       = 0.0
-$CONCURRENCY = 5                   # 并发请求数
-$BATCH_SIZE  = 5
+$CONCURRENCY = 100
+$BATCH_SIZE  = 100
 $OUTPUT_DIR  = "results"
 
-# # ---- 运行评估 (baseline) ----
-# python eval/evaluate_openrouter.py `
-#     --model $MODEL `
-#     --data-path $DATA_PATH `
-#     --max-tokens $MAX_TOKENS `
-#     --temperature $TEMPERATURE `
-#     --top-p $TOP_P `
-#     --top-k $TOP_K `
-#     --min-p $MIN_P `
-#     --concurrency $CONCURRENCY `
-#     --batch-size $BATCH_SIZE `
-#     --output-dir $OUTPUT_DIR
+$VALID_VARIANTS = @("original", "definitions", "one_shot")
+foreach ($variant in $Variants) {
+    if ($variant -notin $VALID_VARIANTS) {
+        Write-Host "错误: 未知 prompt variant: $variant" -ForegroundColor Red
+        Write-Host "可选值: $($VALID_VARIANTS -join ', ')"
+        exit 1
+    }
+}
 
-# if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+# ---- 运行三种消融实验 ----
+foreach ($variant in $Variants) {
+    Write-Host "=============================================================" -ForegroundColor Cyan
+    Write-Host "运行消融实验: $variant" -ForegroundColor Cyan
+    Write-Host "=============================================================" -ForegroundColor Cyan
 
-# ---- 运行评估 (with definitions) ----
-python eval/evaluate_openrouter.py `
-    --model $MODEL `
-    --data-path $DATA_PATH `
-    --max-tokens $MAX_TOKENS `
-    --concurrency $CONCURRENCY `
-    --batch-size $BATCH_SIZE `
-    --output-dir $OUTPUT_DIR `
-    --with-definitions `
-    # --temperature $TEMPERATURE `
-    # --top-p $TOP_P `
-    # --top-k $TOP_K `
-    # --min-p $MIN_P `
+    $cmdArgs = @(
+        "eval/evaluate_openrouter.py",
+        "--model", $MODEL,
+        "--data-path", $DATA_PATH,
+        "--max-tokens", $MAX_TOKENS,
+        "--concurrency", $CONCURRENCY,
+        "--batch-size", $BATCH_SIZE,
+        "--output-dir", $OUTPUT_DIR,
+        "--prompt-variant", $variant,
+        "--reasoning-effort", $ReasoningEffort
+        # "--temperature", $TEMPERATURE,
+        # "--top-p", $TOP_P,
+        # "--top-k", $TOP_K,
+        # "--min-p", $MIN_P
+    )
+
+    if ($NoResume) {
+        $cmdArgs += "--no-resume"
+    }
+
+    python @cmdArgs
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
