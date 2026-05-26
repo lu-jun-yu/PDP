@@ -9,3 +9,4 @@ scripts/*.py
 .claude
 setup_resources.py
 old/
+data_process/
