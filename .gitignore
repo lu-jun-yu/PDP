@@ -5,3 +5,7 @@ results/
 results/*.jsonl
 data
 paper/
+scripts/*.py
+.claude
+setup_resources.py
+old/
