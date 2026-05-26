@@ -11,7 +11,7 @@ train/dapo.py
   - mask_truncated_completions=True：排除被截断的生成
 
 Usage:
-    python train/dapo.py --model-path models/Qwen3-0.6B --data-path data/pdp10k
+    python train/dapo.py --model-path models/Qwen3-8B --data-path data/pdp2k_rq3 --split balanced
 """
 
 import argparse
@@ -36,22 +36,47 @@ transformers.trainer.check_torch_load_is_safe = _noop
 
 from trl import GRPOConfig, GRPOTrainer
 
-from prompt_template import build_messages
-from reward_function import (
-    format_reward_func,
-    decision_reward_func,
-    process_reward_func,
+from prompt_template import (
+    PROMPT_VARIANT_ORIGINAL,
+    PROMPT_VARIANTS,
+    build_messages,
 )
+from reward_function import decision_format_reward_func
 
 
-def add_prompt(example):
+def add_prompt(example, prompt_variant: str):
     """将输入字段组装为 chat messages 格式的 prompt 列。"""
     example["prompt"] = build_messages(
         person_info=example["person_info"],
         procedure=example["procedure"],
         fact=example["fact"],
+        prompt_variant=prompt_variant,
     )
     return example
+
+
+def resolve_split_name(dataset_dict, requested: str) -> str:
+    """
+    解析数据集 split 名称。
+
+    RQ3 文档中使用 `P-40` / `DNP-55` 这类训练组名称；当前本地
+    HuggingFace 数据集 split 使用 `P_40` / `DNP_55`。这里做一层兼容，
+    让脚本参数可以直接沿用论文中的组名。
+    """
+    available = set(dataset_dict.keys())
+    candidates = [
+        requested,
+        requested.replace("-", "_"),
+        requested.lower(),
+        requested.lower().replace("-", "_"),
+        requested.upper(),
+        requested.upper().replace("-", "_"),
+    ]
+    for candidate in candidates:
+        if candidate in available:
+            return candidate
+    choices = ", ".join(sorted(available))
+    raise ValueError(f"未找到 split: {requested!r}；可用 split: {choices}")
 
 
 def get_last_checkpoint(output_dir: str):
@@ -71,8 +96,19 @@ def get_last_checkpoint(output_dir: str):
 
 def main():
     parser = argparse.ArgumentParser(description="PDP DAPO 训练脚本")
-    parser.add_argument("--model-path", default="models/Qwen3-0.6B")
-    parser.add_argument("--data-path", default="data/pdp10k")
+    parser.add_argument("--model-path", default="models/Qwen3-8B")
+    parser.add_argument("--data-path", default="data/pdp2k_rq3")
+    parser.add_argument(
+        "--split",
+        default="balanced",
+        help="训练 split / RQ3 训练组，例如 natural、balanced、P-40、DNP-55",
+    )
+    parser.add_argument(
+        "--prompt-variant",
+        default=PROMPT_VARIANT_ORIGINAL,
+        choices=PROMPT_VARIANTS,
+        help="提示词版本，RQ3 默认 original",
+    )
     parser.add_argument("--output-dir", default="results/dapo")
     # 生成
     parser.add_argument("--max-completion-length", type=int, default=2048)
@@ -85,6 +121,13 @@ def main():
     parser.add_argument("--per-device-train-batch-size", type=int, default=4)
     parser.add_argument("--gradient-accumulation-steps", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=5e-6)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--max-samples",
+        type=int,
+        default=None,
+        help="仅取前 N 条样本训练，用于快速 smoke test；默认使用完整 split",
+    )
     # DAPO 超参
     parser.add_argument("--epsilon", type=float, default=0.2,
                         help="裁剪下界 (trust region)")
@@ -111,8 +154,21 @@ def main():
         os.environ["WANDB_PROJECT"] = args.wandb_project
 
     # ---- 数据集 ----
-    dataset = load_from_disk(args.data_path)["train"]
-    dataset = dataset.map(add_prompt)
+    dataset_dict = load_from_disk(args.data_path)
+    split_name = resolve_split_name(dataset_dict, args.split)
+    dataset = dataset_dict[split_name]
+    if args.max_samples is not None:
+        dataset = dataset.select(range(min(args.max_samples, len(dataset))))
+    dataset = dataset.map(
+        add_prompt,
+        fn_kwargs={"prompt_variant": args.prompt_variant},
+        desc=f"Build prompts ({args.prompt_variant})",
+    )
+
+    print(
+        f"[DAPO] data_path={args.data_path} split={split_name} "
+        f"samples={len(dataset)} prompt_variant={args.prompt_variant}"
+    )
 
     # ---- 训练配置 (DAPO) ----
     config = GRPOConfig(
@@ -140,7 +196,12 @@ def main():
         per_device_train_batch_size=args.per_device_train_batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         learning_rate=args.learning_rate,
+        seed=args.seed,
         bf16=True,
+        # 梯度检查点：8B 模型 + GRPO/DAPO + colocate vLLM 在 A100 80GB 上
+        # 必须开 grad ckpt 才放得下激活；use_reentrant=False 适配 trl/DeepSpeed
+        gradient_checkpointing=True,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
         # 日志与保存
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,
@@ -154,11 +215,7 @@ def main():
     # ---- 训练 ----
     trainer = GRPOTrainer(
         model=args.model_path,
-        reward_funcs=[
-            format_reward_func,
-            decision_reward_func,
-            process_reward_func,
-        ],
+        reward_funcs=[decision_format_reward_func],
         args=config,
         train_dataset=dataset,
     )
