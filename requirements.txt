@@ -7,3 +7,10 @@ trl
 vllm==0.7.3
 deepspeed
 nvitop
+datasets
+openai
+tqdm
+pandas
+scikit-learn
+matplotlib
+seaborn
