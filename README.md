@@ -1,71 +1,10 @@
 # PDP-Bench
 
+English | [中文](README.zh-CN.md)
+
+**Paper:** Preprint coming soon
+
 ![Two-stage view of PDP](assets/Two_Stage.png)
-
-<details>
-<summary>中文版本</summary>
-
-## 简介
-
-刑事法律判决预测（Legal Judgment Prediction, LJP）通常只处理已经进入审判程序的案件，预测罪名、法条和刑期。但在审判之前，检察机关已经通过审查起诉决定哪些案件进入审判，哪些案件因证据不足、依法不负刑事责任或有罪但可免予处罚而被不起诉分流。因此，审判阶段 LJP 天然看不到三类关键刑事责任状态。
-
-为补上这一空白，本项目提出 **Prosecution Decision Prediction (PDP, 公诉决定预测)**：将评测锚点前移到审查起诉阶段，要求模型根据犯罪嫌疑人信息、案件程序信息和案件事实，在四类公诉决定之间作出预测。PDP 同时考察模型的证据评价、法律涵摄和价值裁量能力。
-
-四类标签：
-
-- `P`：起诉
-- `DNP`：相对不起诉
-- `SNP`：法定不起诉
-- `IENP`：存疑不起诉
-
-PDP-Bench 当前包含 **4,630** 条公开中文检察文书样本，时间跨度为 **2014 年 1 月至 2026 年 3 月**，覆盖中国大陆 **31 个省级行政区**。每条样本保留公开来源链接，并包含结构化字段、适用法条、公诉决定和原始审查意见等信息。
-
-## 实验主线
-
-本项目围绕三个问题展开实验：
-
-1. PDP 是否对当前 SOTA LLM 构成系统性挑战？
-2. test-time scaling、法律领域专门化和提示增强能否解决 PDP？
-3. 类别增强的 RLVR / DAPO 训练能否提升模型在少数类责任边界上的判别能力？
-
-实验报告 `Macro-F1`、`Micro-F1` 和类别级 F1，并同时评估两种粒度：`PDP L1` 为起诉 / 不起诉二分类，`PDP L2` 为四分类。
-
-## 快速使用
-
-```bash
-conda create -n pdp python=3.11 -y
-conda activate pdp
-pip install -r requirements.txt
-```
-
-OpenRouter：
-
-```bash
-export OPENROUTER_API_KEY="sk-or-v1-..."
-```
-
-本地 vLLM 评测：
-
-```bash
-python eval/evaluate_vllm.py \
-  --model-path models/Qwen3-8B \
-  --data-path data/pdp4k \
-  --split test \
-  --output-dir results/vllm/Qwen3-8B
-```
-
-DAPO 调试训练：
-
-```bash
-python train/dapo.py \
-  --model-path models/Qwen3-8B \
-  --data-path data/pdp2k_rq3 \
-  --split balanced \
-  --output-dir results/dapo_smoke \
-  --max-samples 32
-```
-
-</details>
 
 ## Overview
 
@@ -126,7 +65,8 @@ The reward curves show optimization dynamics across different class-prior interv
 |-- visual/           # Figure generation scripts
 |-- prompt_template.py
 |-- requirements.txt
-`-- README.md
+|-- README.md
+`-- README.zh-CN.md
 ```
 
 Keep local datasets, model weights, experiment outputs, and paper build artifacts out of version control.
@@ -284,4 +224,3 @@ python visual/plot_ljp_pdp_l2_class_correlation.py
 python visual/plot_rq3_class_prior_intervention.py
 python visual/plot_rq3_reward_curves.py
 ```
-
