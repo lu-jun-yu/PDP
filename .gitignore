@@ -1,12 +1,12 @@
 __pycache__
 models/
 token.json
+setup_resources.py
 results/
 results/*.jsonl
 data
 paper/
 scripts/*.py
 .claude
-setup_resources.py
 old/
 data_process/
