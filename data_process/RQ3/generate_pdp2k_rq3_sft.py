@@ -10,9 +10,10 @@ containing the generated <think>...</think><answer>...</answer> target, and
 saves a new DatasetDict.
 
 Example:
-    python data_process/RQ3/generate_pdp2k_rq3_sft.py ^
-      --model-path models/Qwen3-8B ^
-      --rl-data-path data/pdp2k_rq3 ^
+    python data_process/RQ3/generate_pdp2k_rq3_sft.py 
+      --source-file data\PDP_dataset\train\dataset.json
+      --model-path models/Qwen3-8B
+      --rl-data-path data/pdp2k_rq3
       --output-dir data/pdp2k_rq3_sft
 """
 
