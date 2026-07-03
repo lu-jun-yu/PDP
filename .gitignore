@@ -9,4 +9,3 @@ paper/
 scripts/*.py
 .claude
 old/
-data_process/
