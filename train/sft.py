@@ -23,6 +23,7 @@ import argparse
 import os
 import re
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -70,7 +71,7 @@ def parse_args() -> argparse.Namespace:
         help="SFT prompt variant. Keep this aligned with later DAPO/eval settings.",
     )
     parser.add_argument("--output-dir", default="checkpoints/RQ3_SFT_Qwen3-8B")
-    parser.add_argument("--max-length", type=int, default=8192)
+    parser.add_argument("--max-length", type=int, default=3072)
     parser.add_argument("--max-samples", type=int, default=None)
     parser.add_argument("--num-train-epochs", type=float, default=1.0)
     parser.add_argument("--per-device-train-batch-size", type=int, default=1)
@@ -156,7 +157,7 @@ def tokenize_one(
     cot_field: str,
     prompt_variant: str,
     max_length: int,
-) -> tuple[dict[str, list[int]], bool]:
+) -> tuple[dict[str, list[int]] | None, str]:
     completion = str(example[cot_field]).strip()
     if not completion:
         raise ValueError(f"样本 {example.get('id', '')!r} 的 {cot_field!r} 为空")
@@ -181,24 +182,17 @@ def tokenize_one(
     input_ids = tokenizer(full_text, add_special_tokens=False)["input_ids"]
     if input_ids[: len(prompt_ids)] != prompt_ids:
         raise ValueError(f"tokenized prompt prefix mismatch: {example.get('id', '')!r}")
-    if len(prompt_ids) >= max_length:
-        raise ValueError(
-            f"prompt tokens exceed max_length for {example.get('id', '')!r}: "
-            f"{len(prompt_ids)} >= {max_length}"
-        )
+    if len(input_ids) > max_length:
+        return None, "total"
 
     labels = [-100] * len(prompt_ids) + input_ids[len(prompt_ids):]
     if len(labels) != len(input_ids):
         raise ValueError(f"label length mismatch: {example.get('id', '')!r}")
 
-    truncated = len(input_ids) > max_length
-    if truncated:
-        input_ids = input_ids[:max_length]
-        labels = labels[:max_length]
     if all(label == -100 for label in labels):
         raise ValueError(f"no assistant labels left: {example.get('id', '')!r}")
 
-    return {"input_ids": input_ids, "labels": labels}, truncated
+    return {"input_ids": input_ids, "labels": labels}, ""
 
 
 def build_tokenized_dataset(
@@ -210,19 +204,31 @@ def build_tokenized_dataset(
     max_length: int,
 ) -> Dataset:
     rows: list[dict[str, list[int]]] = []
-    truncated = 0
+    dropped: Counter[str] = Counter()
+    dropped_by_decision: Counter[str] = Counter()
     for example in dataset:
-        item, was_truncated = tokenize_one(
+        item, drop_reason = tokenize_one(
             example=example,
             tokenizer=tokenizer,
             cot_field=cot_field,
             prompt_variant=prompt_variant,
             max_length=max_length,
         )
+        if item is None:
+            dropped[drop_reason] += 1
+            dropped_by_decision[str(example.get("decision", ""))] += 1
+            continue
         rows.append(item)
-        truncated += int(was_truncated)
-    if truncated:
-        print(f"[SFT] warning: truncated {truncated}/{len(rows)} samples to max_length")
+    if not rows:
+        raise ValueError("length filters dropped every SFT sample")
+    if dropped:
+        total_dropped = sum(dropped.values())
+        print(
+            "[SFT] length filter dropped "
+            f"{total_dropped}/{len(dataset)} samples: "
+            f"total>{max_length}={dropped.get('total', 0)}"
+        )
+        print(f"[SFT] length filter dropped by decision: {dict(dropped_by_decision)}")
     return Dataset.from_list(rows)
 
 
@@ -292,7 +298,8 @@ def main() -> None:
 
     print(
         f"[SFT] model={args.model_path} data={args.data_path} split={args.split} "
-        f"samples={len(tokenized_dataset)} prompt_variant={args.prompt_variant}"
+        f"samples={len(tokenized_dataset)} prompt_variant={args.prompt_variant} "
+        f"max_length={args.max_length}"
     )
 
     torch_dtype = torch.bfloat16 if args.bf16 else torch.float16 if args.fp16 else "auto"
