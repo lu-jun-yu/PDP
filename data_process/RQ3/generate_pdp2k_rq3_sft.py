@@ -12,7 +12,7 @@ saves a new DatasetDict.
 Example:
     python data_process/RQ3/generate_pdp2k_rq3_sft.py 
       --source-file data\PDP_dataset\train\dataset.json
-      --model-path models/Qwen3-8B
+      --model qwen/qwen3-max-thinking
       --rl-data-path data/pdp2k_rq3
       --output-dir data/pdp2k_rq3_sft
 """
@@ -20,13 +20,16 @@ Example:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import logging
+import os
 import random
 import shutil
 import sys
 import time
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -39,12 +42,12 @@ try:
 except ImportError as exc:
     raise SystemExit("请先安装依赖: pip install datasets") from exc
 
-try:
-    from vllm import LLM, SamplingParams
-except ImportError as exc:
-    raise SystemExit("请先安装依赖: pip install vllm") from exc
-
 from build_pdp2k_rq3_dataset import FEATURES, LABEL_ORDER, load_json
+from prompt_template import (
+    PROMPT_VARIANT_ORIGINAL,
+    PROMPT_VARIANTS,
+    build_messages,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,50 +57,62 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 DEFAULT_OUTPUT_FIELD = "cot_data"
+DEFAULT_OPENROUTER_MODEL = "qwen/qwen3-max-thinking"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+DEFAULT_RL_MAX_COMPLETION_LENGTH = 1536
+
+
+@dataclass(frozen=True)
+class LLMOptions:
+    max_retries: int
 
 SYSTEM_PROMPT = """\
-你是中国刑事检察文书的监督微调数据生成助手。你的任务是根据给定样本的全部字段，生成一条可用于 SFT 的 CoT 目标文本。
+你是中国刑事检察文书的监督微调数据标注助手。你的任务不是重新预测结论，而是在已给定参考结果的条件下，只补全 SFT 目标输出中缺失的两个文本字段。
 
-硬性要求：
-1. 必须综合使用样本中的 id、meta、person_info、procedure、fact、relevant_articles、decision、raw_reasoning_and_decision、source_url 等全部字段信息。
-2. relevant_articles 与 decision 是参考标注，生成内容必须与它们保持一致；不要把最终决定改成其他类别。
-3. 输出必须且只能包含一个 <think> 块和一个 <answer> 块，不要输出 Markdown 代码块、解释或额外前后缀。
-4. <think> 中写出面向训练数据的审查推理链，覆盖案件事实、证据状态、程序情况、法条依据与决定类型判断。
-5. <answer> 中必须严格使用指定小标题：【适用法条】、【审查分析】、【最终结论】。
-6. 【最终结论】中的“决定”只能是：起诉、相对不起诉、法定不起诉、存疑不起诉。
+你必须严格输出 JSON 对象，且只能包含两个键：
+{{
+  "CoT": "...",
+  "审查分析": "..."
+}}
+
+不要输出 Markdown 代码块、解释、前后缀或完整 <think>/<answer> 文本。完整 SFT target 将由程序根据你的 JSON、适用法条和最终决定自行拼接。
+
+标注原则：
+1. SFT 训练时，模型输入只包含案件可见信息；你会在用户消息中看到完整 SFT 输入。
+2. SFT 训练时，模型输出是完整 assistant target；你会在用户消息中看到不完整的 SFT 输出模板。
+3. 本次额外提供的 relevant_articles、decision、raw_reasoning_and_decision 是标注辅助信息，仅用于帮助你补全 CoT 和审查分析，不是未来模型推理时可见的输入。
+4. "CoT" 应先从案件事实、证据状态、程序经过和法律适用切入，再自然收束到给定 decision；不要第一句就宣布最终决定。
+5. "审查分析" 应像检察文书审查意见一样，用案件事实和法律依据说明为什么得到该结论。
+6. 不得写“因为 decision/参考标注/给定结果是某类，所以应当某类”等元话语；不得把参考标注当作法律理由。
+7. 不得暴露 decision、raw_reasoning_and_decision 等字段名，也不得暗示你看到了标注辅助字段。
+8. 不要编造样本中没有的关键事实。若辅助字段之间存在差异，应在给定 relevant_articles 和 decision 约束下选择能够自洽解释该结果的事实与法律路径。
+9. JSON 中两段文本合计不得超过 {max_answer_tokens} tokens。
 """
 
 USER_PROMPT_TEMPLATE = """\
-请根据以下样本全部字段生成 CoT 数据。
+请为下面这条 SFT 样本补全缺失的 "CoT" 和 "审查分析"。
 
-【样本字段】
-id: {id}
-meta: {meta}
-person_info: {person_info}
-procedure: {procedure}
-fact: {fact}
+【最大回答长度】
+JSON 中 "CoT" 与 "审查分析" 两段文本合计不超过 {max_answer_tokens} tokens。
+
+【完整 SFT 输入（未来训练时模型实际看到的 prompt）】
+{sft_input_messages}
+
+【不完整 SFT 输出（程序稍后会自行拼成完整 assistant target）】
+{partial_sft_output}
+
+【本次标注辅助字段（未来模型不可见，仅用于补全上面的缺失部分）】
 relevant_articles: {relevant_articles}
 decision: {decision}
 raw_reasoning_and_decision: {raw_reasoning_and_decision}
-source_url: {source_url}
 
-【输出格式】
-<think>
-{{CoT}}
-</think>
+【输出 JSON 格式】
+{{
+  "CoT": "先分析事实、证据、程序、法条和责任边界，再自然推出给定决定的推理链",
+  "审查分析": "面向最终 <answer> 中【审查分析】小节的正式审查意见"
+}}
 
-<answer>
-【适用法条】
-刑法：第xxx条第xx款
-刑事诉讼法：第xxx条第xx项、第xxx条第xx款
-刑事诉讼规则：第xxx条第xx款
-
-【审查分析】
-{{审查分析}}
-
-【最终结论】
-决定：{{决定}}
-</answer>
+只输出上述 JSON 对象本身。
 """
 
 
@@ -105,7 +120,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="构建与 RQ3/RL 训练集不重叠的 balanced CoT SFT 数据集"
     )
-    parser.add_argument("--model-path", default="models/Qwen3-8B")
+    parser.add_argument(
+        "--model",
+        default=DEFAULT_OPENROUTER_MODEL,
+        help=f"OpenRouter 模型 id (default: {DEFAULT_OPENROUTER_MODEL})",
+    )
     parser.add_argument(
         "--source-file",
         default="data/PDP_dataset/train/dataset.json",
@@ -113,10 +132,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--rl-data-path",
-        "--data-path",
-        dest="rl_data_path",
         default="data/pdp2k_rq3",
-        help="需要排除的 RQ3/RL DatasetDict 路径；--data-path 为兼容别名",
+        help="需要排除的 RQ3/RL DatasetDict 路径",
     )
     parser.add_argument("--output-dir", default="data/pdp2k_rq3_sft")
     parser.add_argument(
@@ -128,6 +145,12 @@ def parse_args() -> argparse.Namespace:
         "--output-field",
         default=DEFAULT_OUTPUT_FIELD,
         help=f"新增字段名 (default: {DEFAULT_OUTPUT_FIELD})",
+    )
+    parser.add_argument(
+        "--prompt-variant",
+        default=PROMPT_VARIANT_ORIGINAL,
+        choices=PROMPT_VARIANTS,
+        help="构造完整 SFT 输入时使用的 prompt 变体，应与 train/sft.py 保持一致",
     )
     parser.add_argument(
         "--splits",
@@ -152,18 +175,20 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="每个 split 最多处理 N 条；0 表示全部。用于 smoke test。",
     )
-    parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--max-model-len", type=int, default=16384)
-    parser.add_argument("--max-tokens", type=int, default=4096)
-    parser.add_argument("--tensor-parallel-size", type=int, default=1)
-    parser.add_argument("--gpu-memory-utilization", type=float, default=0.9)
+    parser.add_argument("--concurrency", type=int, default=8)
     parser.add_argument(
-        "--dtype",
-        default="auto",
-        help="vLLM dtype: auto / bfloat16 / float16 / float32",
+        "--max-answer-tokens",
+        type=int,
+        default=DEFAULT_RL_MAX_COMPLETION_LENGTH,
+        help=(
+            "仅写入标注提示词的回答长度约束，不作为 OpenRouter API max_tokens；"
+            f"默认 {DEFAULT_RL_MAX_COMPLETION_LENGTH}，与 RQ3 DAPO "
+            "MAX_COMPLETION_LENGTH 对齐"
+        ),
     )
-    parser.add_argument("--temperature", type=float, default=0.2)
-    parser.add_argument("--top-p", type=float, default=0.95)
+    parser.add_argument("--temperature", type=float, default=None)
+    parser.add_argument("--top-p", type=float, default=None)
+    parser.add_argument("--max-retries", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--overwrite",
@@ -332,27 +357,65 @@ def format_articles(articles: Any) -> str:
     return "\n".join(lines)
 
 
-def sample_to_messages(sample: dict[str, Any]) -> list[dict[str, str]]:
-    meta = json.dumps(sample.get("meta") or {}, ensure_ascii=False)
+def build_sft_input_messages(sample: dict[str, Any], prompt_variant: str) -> list[dict[str, str]]:
+    return build_messages(
+        person_info=sample.get("person_info", ""),
+        procedure=sample.get("procedure", ""),
+        fact=sample.get("fact", ""),
+        prompt_variant=prompt_variant,
+    )
+
+
+def build_partial_sft_output(sample: dict[str, Any]) -> str:
+    article_block = format_articles(sample.get("relevant_articles") or [])
+    decision = sample.get("decision", "")
+    return f"""\
+<think>
+{{待补全 CoT}}
+</think>
+
+<answer>
+【适用法条】
+{article_block}
+
+【审查分析】
+{{待补全审查分析}}
+
+【最终结论】
+决定：{decision}
+</answer>"""
+
+
+def sample_to_messages(
+    sample: dict[str, Any],
+    *,
+    max_answer_tokens: int,
+    prompt_variant: str,
+) -> list[dict[str, str]]:
     raw_articles = json.dumps(
         list(sample.get("relevant_articles") or []),
         ensure_ascii=False,
     )
     article_hint = format_articles(sample.get("relevant_articles") or [])
     relevant_articles = f"{raw_articles}\n按法域整理：\n{article_hint}"
+    sft_input_messages = json.dumps(
+        build_sft_input_messages(sample, prompt_variant),
+        ensure_ascii=False,
+        indent=2,
+    )
     user_prompt = USER_PROMPT_TEMPLATE.format(
-        id=sample.get("id", ""),
-        meta=meta,
-        person_info=sample.get("person_info", ""),
-        procedure=sample.get("procedure", ""),
-        fact=sample.get("fact", ""),
+        max_answer_tokens=max_answer_tokens,
+        sft_input_messages=sft_input_messages,
+        partial_sft_output=build_partial_sft_output(sample),
         relevant_articles=relevant_articles,
         decision=sample.get("decision", ""),
         raw_reasoning_and_decision=sample.get("raw_reasoning_and_decision", ""),
-        source_url=sample.get("source_url", ""),
     )
     return [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT.format(max_answer_tokens=max_answer_tokens),
+        },
         {"role": "user", "content": user_prompt},
     ]
 
@@ -367,6 +430,56 @@ def normalize_output(text: str) -> str:
             lines = lines[:-1]
         text = "\n".join(lines).strip()
     return text
+
+
+def parse_json_object(text: str) -> dict[str, Any] | None:
+    text = normalize_output(text)
+    try:
+        obj = json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            return None
+        try:
+            obj = json.loads(text[start: end + 1])
+        except json.JSONDecodeError:
+            return None
+    return obj if isinstance(obj, dict) else None
+
+
+def validate_annotation_json(obj: dict[str, Any]) -> dict[str, str]:
+    if not isinstance(obj, dict):
+        raise ValueError("annotation output is not a JSON object")
+    cot = str(obj.get("CoT") or "").strip()
+    analysis = str(obj.get("审查分析") or "").strip()
+    if not cot:
+        raise ValueError("annotation JSON missing non-empty 'CoT'")
+    if not analysis:
+        raise ValueError("annotation JSON missing non-empty '审查分析'")
+    return {"CoT": cot, "审查分析": analysis}
+
+
+def build_complete_cot_text(sample: dict[str, Any], annotation: dict[str, str]) -> str:
+    article_block = format_articles(sample.get("relevant_articles") or [])
+    decision = str(sample.get("decision") or "").strip()
+    if decision not in LABEL_ORDER:
+        raise ValueError(f"未知 decision 标签: {decision!r}")
+    return f"""\
+<think>
+{annotation["CoT"]}
+</think>
+
+<answer>
+【适用法条】
+{article_block}
+
+【审查分析】
+{annotation["审查分析"]}
+
+【最终结论】
+决定：{decision}
+</answer>"""
 
 
 def load_completed(checkpoint_file: Path, output_field: str) -> dict[int, str]:
@@ -395,15 +508,6 @@ def load_completed(checkpoint_file: Path, output_field: str) -> dict[int, str]:
     return completed
 
 
-def build_sampling_params(args: argparse.Namespace) -> SamplingParams:
-    return SamplingParams(
-        max_tokens=args.max_tokens,
-        temperature=args.temperature,
-        top_p=args.top_p,
-        seed=args.seed,
-    )
-
-
 def remove_tree_checked(path: Path, *, forbidden: set[Path]) -> None:
     resolved = path.resolve()
     if resolved in forbidden:
@@ -415,9 +519,130 @@ def remove_tree_checked(path: Path, *, forbidden: set[Path]) -> None:
     shutil.rmtree(resolved)
 
 
-def generate_split(
+async def call_llm_json(
     *,
-    llm: LLM,
+    client: Any,
+    model: str,
+    messages: list[dict[str, str]],
+    temperature: float | None,
+    top_p: float | None,
+    semaphore: asyncio.Semaphore,
+    llm_options: LLMOptions,
+    tag: str,
+) -> tuple[dict[str, str] | None, str, str]:
+    last_error = ""
+    last_raw = ""
+    for attempt in range(llm_options.max_retries):
+        async with semaphore:
+            try:
+                kwargs: dict[str, Any] = {
+                    "model": model,
+                    "messages": messages,
+                    "extra_body": {"reasoning": {"enabled": True}},
+                }
+                if temperature is not None:
+                    kwargs["temperature"] = temperature
+                if top_p is not None:
+                    kwargs["top_p"] = top_p
+
+                response = await client.chat.completions.create(**kwargs)
+                choices = getattr(response, "choices", None) or []
+                if not choices:
+                    raise ValueError("OpenRouter returned empty choices")
+                message = getattr(choices[0], "message", None)
+                if message is None:
+                    raise ValueError("OpenRouter returned empty message")
+                last_raw = (message.content or "").strip()
+                if not last_raw:
+                    raise ValueError("OpenRouter returned empty content")
+
+                obj = parse_json_object(last_raw)
+                if obj is None:
+                    last_error = "JSON parse failed"
+                    logger.warning(
+                        "[%s] JSON parse failed at attempt %d/%d: %s...",
+                        tag,
+                        attempt + 1,
+                        llm_options.max_retries,
+                        last_raw[:180],
+                    )
+                else:
+                    try:
+                        return validate_annotation_json(obj), last_raw, ""
+                    except ValueError as exc:
+                        last_error = str(exc)
+                        logger.warning(
+                            "[%s] JSON schema failed at attempt %d/%d: %s",
+                            tag,
+                            attempt + 1,
+                            llm_options.max_retries,
+                            exc,
+                        )
+            except Exception as exc:
+                last_error = str(exc)
+                logger.warning(
+                    "[%s] API error at attempt %d/%d: %s",
+                    tag,
+                    attempt + 1,
+                    llm_options.max_retries,
+                    exc,
+                )
+        if attempt < llm_options.max_retries - 1:
+            await asyncio.sleep(min(60, 2**attempt))
+    return None, last_raw, last_error
+
+
+async def generate_one(
+    *,
+    client: Any,
+    semaphore: asyncio.Semaphore,
+    dataset: Dataset,
+    split_name: str,
+    idx: int,
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    sample = dataset[idx]
+    messages = sample_to_messages(
+        sample,
+        max_answer_tokens=args.max_answer_tokens,
+        prompt_variant=args.prompt_variant,
+    )
+    annotation, raw_output, error = await call_llm_json(
+        client=client,
+        model=args.model,
+        messages=messages,
+        temperature=args.temperature,
+        top_p=args.top_p,
+        semaphore=semaphore,
+        llm_options=LLMOptions(
+            max_retries=args.max_retries,
+        ),
+        tag=f"{split_name}:{idx}",
+    )
+    if annotation is None:
+        return {
+            "split": split_name,
+            "index": idx,
+            "id": sample.get("id", ""),
+            "ok": False,
+            "error": error or "OpenRouter call or JSON parse failed",
+            "raw_annotation_output": raw_output,
+        }
+    text = build_complete_cot_text(sample, annotation)
+    return {
+        "split": split_name,
+        "index": idx,
+        "id": sample.get("id", ""),
+        "ok": True,
+        args.output_field: text,
+        "annotation": annotation,
+        "raw_annotation_output": raw_output,
+    }
+
+
+async def generate_split_async(
+    *,
+    client: Any,
     dataset: Dataset,
     split_name: str,
     checkpoint_dir: Path,
@@ -428,7 +653,7 @@ def generate_split(
         n = min(n, args.max_samples)
         dataset = dataset.select(range(n))
 
-    checkpoint_file = checkpoint_dir / f"{split_name}.jsonl"
+    checkpoint_file = checkpoint_dir / f"{split_name}_json_annotation.jsonl"
     completed = load_completed(checkpoint_file, args.output_field)
     pending = [idx for idx in range(n) if idx not in completed]
     logger.info(
@@ -441,42 +666,50 @@ def generate_split(
 
     if pending:
         checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
-        batch_size = args.batch_size if args.batch_size > 0 else len(pending)
-        sampling_params = build_sampling_params(args)
+        semaphore = asyncio.Semaphore(args.concurrency)
         start = time.time()
         generated_count = 0
 
         with checkpoint_file.open("a", encoding="utf-8") as f:
-            for batch_start in range(0, len(pending), batch_size):
-                batch_indices = pending[batch_start: batch_start + batch_size]
-                messages = [sample_to_messages(dataset[idx]) for idx in batch_indices]
-                outputs = llm.chat(messages=messages, sampling_params=sampling_params)
-
-                for idx, output in zip(batch_indices, outputs, strict=True):
-                    text = normalize_output(output.outputs[0].text)
-                    completed[idx] = text
-                    f.write(
-                        json.dumps(
-                            {
-                                "split": split_name,
-                                "index": idx,
-                                "id": dataset[idx].get("id", ""),
-                                args.output_field: text,
-                            },
-                            ensure_ascii=False,
-                        )
-                        + "\n"
+            for offset in range(0, len(pending), args.concurrency):
+                chunk = pending[offset: offset + args.concurrency]
+                tasks = [
+                    generate_one(
+                        client=client,
+                        semaphore=semaphore,
+                        dataset=dataset,
+                        split_name=split_name,
+                        idx=idx,
+                        args=args,
                     )
+                    for idx in chunk
+                ]
+                success_count = 0
+                for record in await asyncio.gather(*tasks):
+                    idx = int(record["index"])
+                    if not record.get("ok"):
+                        logger.warning(
+                            "[%s:%d] annotation failed: %s",
+                            split_name,
+                            idx,
+                            record.get("error", ""),
+                        )
+                        continue
+                    completed[idx] = str(record[args.output_field])
+                    f.write(json.dumps(record, ensure_ascii=False) + "\n")
+                    success_count += 1
                 f.flush()
 
-                generated_count += len(batch_indices)
+                generated_count += success_count
                 elapsed = time.time() - start
                 rate = generated_count / elapsed if elapsed > 0 else 0.0
                 logger.info(
-                    "[%s] progress %d/%d, %.2f samples/s",
+                    "[%s] progress %d/%d, chunk_success=%d/%d, %.2f samples/s",
                     split_name,
                     len(completed),
                     n,
+                    success_count,
+                    len(chunk),
                     rate,
                 )
 
@@ -486,7 +719,7 @@ def generate_split(
     return [completed[idx] for idx in range(n)]
 
 
-def main() -> None:
+async def async_main() -> None:
     args = parse_args()
 
     source_file = Path(args.source_file)
@@ -498,10 +731,12 @@ def main() -> None:
         else output_dir.with_name(output_dir.name + "_checkpoints")
     )
 
-    if args.batch_size < 0:
-        raise ValueError("--batch-size 不能为负数")
+    if args.concurrency < 1:
+        raise ValueError("--concurrency 必须为正整数")
     if args.max_samples < 0:
         raise ValueError("--max-samples 不能为负数")
+    if args.max_answer_tokens < 1:
+        raise ValueError("--max-answer-tokens 必须为正整数")
     if rl_data_path.resolve() == output_dir.resolve():
         raise ValueError("--output-dir 不能与 --rl-data-path 相同")
     if output_dir.exists():
@@ -510,6 +745,20 @@ def main() -> None:
                 f"输出目录已存在: {output_dir}。如需覆盖，请添加 --overwrite"
             )
         remove_tree_checked(output_dir, forbidden={rl_data_path.resolve()})
+
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        raise SystemExit("请设置环境变量 OPENROUTER_API_KEY")
+    try:
+        from openai import AsyncOpenAI
+    except ImportError as exc:
+        raise SystemExit("请先安装依赖: pip install openai") from exc
+    client = AsyncOpenAI(
+        base_url=OPENROUTER_BASE_URL,
+        api_key=api_key,
+        timeout=180.0,
+        max_retries=0,
+    )
 
     logger.info("构建非重叠 balanced SFT 数据集")
     dataset_dict = build_nonoverlap_sft_dataset(
@@ -530,21 +779,18 @@ def main() -> None:
                 "如需替换，请添加 --replace-field"
             )
 
-    logger.info("加载模型: %s", args.model_path)
-    llm = LLM(
-        model=args.model_path,
-        tensor_parallel_size=args.tensor_parallel_size,
-        max_model_len=args.max_model_len,
-        gpu_memory_utilization=args.gpu_memory_utilization,
-        dtype=args.dtype,
-        trust_remote_code=True,
+    logger.info(
+        "OpenRouter 标注模型: %s  并发: %d  prompt_answer_token_limit: %d",
+        args.model,
+        args.concurrency,
+        args.max_answer_tokens,
     )
 
     output_splits: dict[str, Dataset] = {}
     for split_name in split_names:
         dataset = dataset_dict[split_name]
-        cot_values = generate_split(
-            llm=llm,
+        cot_values = await generate_split_async(
+            client=client,
             dataset=dataset,
             split_name=split_name,
             checkpoint_dir=checkpoint_dir,
@@ -564,7 +810,7 @@ def main() -> None:
     manifest = {
         "source_file": str(source_file),
         "rl_data_path": str(rl_data_path),
-        "model_path": args.model_path,
+        "model": args.model,
         "output_field": args.output_field,
         "sft_sampling": {
             "excluded_dataset": str(rl_data_path),
@@ -576,11 +822,16 @@ def main() -> None:
         "splits": {name: len(output_dataset[name]) for name in output_dataset.keys()},
         "max_samples": args.max_samples,
         "generation": {
-            "max_model_len": args.max_model_len,
-            "max_tokens": args.max_tokens,
+            "max_answer_tokens_prompt_only": args.max_answer_tokens,
+            "api_max_tokens": None,
+            "api_reasoning": {"enabled": True},
             "temperature": args.temperature,
             "top_p": args.top_p,
             "seed": args.seed,
+            "provider": "openrouter",
+            "base_url": OPENROUTER_BASE_URL,
+            "prompt_variant": args.prompt_variant,
+            "annotation_output_schema": {"CoT": "string", "审查分析": "string"},
         },
     }
     with (output_dir / "cot_generation_manifest.json").open("w", encoding="utf-8") as f:
@@ -593,6 +844,10 @@ def main() -> None:
         )
 
     logger.info("完成: %s", output_dir)
+
+
+def main() -> None:
+    asyncio.run(async_main())
 
 
 if __name__ == "__main__":

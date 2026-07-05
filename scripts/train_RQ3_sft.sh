@@ -27,6 +27,30 @@ set -euo pipefail
 
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
+# Limit CPU saturation from tokenizers, BLAS/OpenMP, DataLoader workers, and
+# DeepSpeed CPU offload threads. Override with MAX_CPU_CORES=16, etc.
+MAX_CPU_CORES="${MAX_CPU_CORES:-16}"
+if ! [[ "$MAX_CPU_CORES" =~ ^[0-9]+$ ]] || [[ "$MAX_CPU_CORES" -lt 1 ]]; then
+    echo "错误: MAX_CPU_CORES 必须为正整数，当前值: $MAX_CPU_CORES"
+    exit 1
+fi
+if command -v nproc >/dev/null 2>&1; then
+    AVAILABLE_CPU_CORES="$(nproc)"
+elif command -v getconf >/dev/null 2>&1; then
+    AVAILABLE_CPU_CORES="$(getconf _NPROCESSORS_ONLN)"
+else
+    AVAILABLE_CPU_CORES="$MAX_CPU_CORES"
+fi
+if [[ "$MAX_CPU_CORES" -gt "$AVAILABLE_CPU_CORES" ]]; then
+    MAX_CPU_CORES="$AVAILABLE_CPU_CORES"
+fi
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-$MAX_CPU_CORES}"
+export MKL_NUM_THREADS="${MKL_NUM_THREADS:-$MAX_CPU_CORES}"
+export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-$MAX_CPU_CORES}"
+export NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS:-$MAX_CPU_CORES}"
+export VECLIB_MAXIMUM_THREADS="${VECLIB_MAXIMUM_THREADS:-$MAX_CPU_CORES}"
+export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
+
 # ---- 环境提示 ----
 if [[ "${CONDA_DEFAULT_ENV:-}" != "pytorch" ]]; then
     echo "警告: 当前 conda 环境不是 pytorch (CONDA_DEFAULT_ENV=${CONDA_DEFAULT_ENV:-未设置})。"
@@ -65,8 +89,8 @@ OUTPUT_DIR="${OUTPUT_DIR:-$OUTPUT_ROOT/$RUN_NAME}"
 # ---- 训练 ----
 MAX_LENGTH="${MAX_LENGTH:-3072}"
 NUM_EPOCHS="${NUM_EPOCHS:-2}"
-BATCH_SIZE="${BATCH_SIZE:-32}"
-GRAD_ACCUM="${GRAD_ACCUM:-8}"
+BATCH_SIZE="${BATCH_SIZE:-4}"
+GRAD_ACCUM="${GRAD_ACCUM:-64}"
 LR="${LR:-1e-6}"
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.0}"
 WARMUP_RATIO="${WARMUP_RATIO:-0.03}"
@@ -115,6 +139,11 @@ CMD=(
     --run-name "$RUN_NAME"
 )
 
+if command -v taskset >/dev/null 2>&1; then
+    CPU_LAST=$((MAX_CPU_CORES - 1))
+    CMD=(taskset -c "0-${CPU_LAST}" "${CMD[@]}")
+fi
+
 if [[ -n "${MAX_SAMPLES:-}" ]]; then
     CMD+=(--max-samples "$MAX_SAMPLES")
 fi
@@ -141,6 +170,7 @@ echo "  deepspeed:      $DEEPSPEED_CONFIG  (OFFLOAD_OPTIMIZER=${OFFLOAD_OPTIMIZE
 echo "  output_dir:     $OUTPUT_DIR"
 echo "  max_length:     $MAX_LENGTH"
 echo "  batch/accum:    $BATCH_SIZE / $GRAD_ACCUM"
+echo "  max_cpu_cores:  $MAX_CPU_CORES"
 echo "  epochs/lr:      $NUM_EPOCHS / $LR"
 echo "============================================================="
 echo "Command: ${CMD[*]}"

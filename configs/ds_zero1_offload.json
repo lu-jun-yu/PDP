@@ -8,7 +8,7 @@
         "reduce_bucket_size": 2e8,
         "offload_optimizer": {
             "device": "cpu",
-            "pin_memory": true
+            "pin_memory": false
         }
     },
     "gradient_accumulation_steps": "auto",
