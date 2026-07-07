@@ -29,7 +29,7 @@ export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:T
 
 # Limit CPU saturation from tokenizers, BLAS/OpenMP, DataLoader workers, and
 # DeepSpeed CPU offload threads. Override with MAX_CPU_CORES=16, etc.
-MAX_CPU_CORES="${MAX_CPU_CORES:-16}"
+MAX_CPU_CORES="${MAX_CPU_CORES:-48}"
 if ! [[ "$MAX_CPU_CORES" =~ ^[0-9]+$ ]] || [[ "$MAX_CPU_CORES" -lt 1 ]]; then
     echo "错误: MAX_CPU_CORES 必须为正整数，当前值: $MAX_CPU_CORES"
     exit 1
@@ -88,17 +88,23 @@ OUTPUT_DIR="${OUTPUT_DIR:-$OUTPUT_ROOT/$RUN_NAME}"
 
 # ---- 训练 ----
 MAX_LENGTH="${MAX_LENGTH:-3072}"
-NUM_EPOCHS="${NUM_EPOCHS:-2}"
-BATCH_SIZE="${BATCH_SIZE:-4}"
-GRAD_ACCUM="${GRAD_ACCUM:-64}"
-LR="${LR:-1e-6}"
+USE_LORA="${USE_LORA:-1}"
+LORA_R="${LORA_R:-32}"
+LORA_ALPHA="${LORA_ALPHA:-64}"
+LORA_DROPOUT="${LORA_DROPOUT:-0.05}"
+LORA_BIAS="${LORA_BIAS:-none}"
+LORA_TARGET_MODULES="${LORA_TARGET_MODULES:-q_proj k_proj v_proj o_proj gate_proj up_proj down_proj}"
+NUM_EPOCHS="${NUM_EPOCHS:-8}"
+BATCH_SIZE="${BATCH_SIZE:-5}"
+GRAD_ACCUM="${GRAD_ACCUM:-32}"
+LR="${LR:-1e-4}"
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.0}"
 WARMUP_RATIO="${WARMUP_RATIO:-0.03}"
-LR_SCHEDULER_TYPE="${LR_SCHEDULER_TYPE:-cosine}"
+LR_SCHEDULER_TYPE="${LR_SCHEDULER_TYPE:-constant_with_warmup}"
 SEED="${SEED:-42}"
 
 # ---- 日志与保存 ----
-LOGGING_STEPS="${LOGGING_STEPS:-10}"
+LOGGING_STEPS="${LOGGING_STEPS:-1}"
 SAVE_STEPS="${SAVE_STEPS:-200}"
 SAVE_TOTAL_LIMIT="${SAVE_TOTAL_LIMIT:-3}"
 WANDB_PROJECT="${WANDB_PROJECT:-PDP-RQ3-SFT}"
@@ -139,6 +145,20 @@ CMD=(
     --run-name "$RUN_NAME"
 )
 
+if [[ "$USE_LORA" == "1" ]]; then
+    CMD+=(
+        --use-lora
+        --lora-r "$LORA_R"
+        --lora-alpha "$LORA_ALPHA"
+        --lora-dropout "$LORA_DROPOUT"
+        --lora-bias "$LORA_BIAS"
+    )
+    read -r -a LORA_TARGET_MODULES_ARR <<< "$LORA_TARGET_MODULES"
+    CMD+=(--lora-target-modules "${LORA_TARGET_MODULES_ARR[@]}")
+else
+    CMD+=(--no-use-lora)
+fi
+
 if command -v taskset >/dev/null 2>&1; then
     CPU_LAST=$((MAX_CPU_CORES - 1))
     CMD=(taskset -c "0-${CPU_LAST}" "${CMD[@]}")
@@ -172,6 +192,11 @@ echo "  max_length:     $MAX_LENGTH"
 echo "  batch/accum:    $BATCH_SIZE / $GRAD_ACCUM"
 echo "  max_cpu_cores:  $MAX_CPU_CORES"
 echo "  epochs/lr:      $NUM_EPOCHS / $LR"
+echo "  use_lora:       $USE_LORA"
+if [[ "$USE_LORA" == "1" ]]; then
+    echo "  lora:           r=$LORA_R alpha=$LORA_ALPHA dropout=$LORA_DROPOUT bias=$LORA_BIAS"
+    echo "  lora_targets:   $LORA_TARGET_MODULES"
+fi
 echo "============================================================="
 echo "Command: ${CMD[*]}"
 

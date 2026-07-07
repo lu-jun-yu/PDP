@@ -6,7 +6,7 @@ Generate non-overlapping balanced CoT-style SFT data for RQ3 cold start.
 The script samples from data/PDP_dataset/train/dataset.json, excludes every
 sample ID already used by the RQ3/RL DatasetDict, keeps class balance, uses
 every field in each sampled record as generation context, adds one text field
-containing the generated <think>...</think><answer>...</answer> target, and
+containing the generated native-style <think>...</think> + structured answer target, and
 saves a new DatasetDict.
 
 Example:
@@ -75,7 +75,7 @@ SYSTEM_PROMPT = """\
   "审查分析": "..."
 }}
 
-不要输出 Markdown 代码块、解释、前后缀或完整 <think>/<answer> 文本。完整 SFT target 将由程序根据你的 JSON、适用法条和最终决定自行拼接。
+不要输出 Markdown 代码块、解释、前后缀或完整 <think> / 最终答案文本。完整 SFT target 将由程序根据你的 JSON、适用法条和最终决定自行拼接。
 
 标注原则：
 1. SFT 训练时，模型输入只包含案件可见信息；你会在用户消息中看到完整 SFT 输入。
@@ -109,7 +109,7 @@ raw_reasoning_and_decision: {raw_reasoning_and_decision}
 【输出 JSON 格式】
 {{
   "CoT": "先分析事实、证据、程序、法条和责任边界，再自然推出给定决定的推理链",
-  "审查分析": "面向最终 <answer> 中【审查分析】小节的正式审查意见"
+  "审查分析": "面向最终输出中【审查分析】小节的正式审查意见"
 }}
 
 只输出上述 JSON 对象本身。
@@ -374,7 +374,6 @@ def build_partial_sft_output(sample: dict[str, Any]) -> str:
 {{待补全 CoT}}
 </think>
 
-<answer>
 【适用法条】
 {article_block}
 
@@ -383,7 +382,7 @@ def build_partial_sft_output(sample: dict[str, Any]) -> str:
 
 【最终结论】
 决定：{decision}
-</answer>"""
+"""
 
 
 def sample_to_messages(
@@ -470,7 +469,6 @@ def build_complete_cot_text(sample: dict[str, Any], annotation: dict[str, str]) 
 {annotation["CoT"]}
 </think>
 
-<answer>
 【适用法条】
 {article_block}
 
@@ -479,7 +477,7 @@ def build_complete_cot_text(sample: dict[str, Any], annotation: dict[str, str]) 
 
 【最终结论】
 决定：{decision}
-</answer>"""
+"""
 
 
 def load_completed(checkpoint_file: Path, output_field: str) -> dict[int, str]:

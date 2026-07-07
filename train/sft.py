@@ -34,6 +34,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from datasets import Dataset, load_from_disk
+from peft import LoraConfig, TaskType, get_peft_model
 
 # PyTorch < 2.6 may block loading local checkpoints because of the
 # CVE-2025-32434 guard. This script loads user-managed local checkpoints only.
@@ -73,18 +74,37 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default="checkpoints/RQ3_SFT_Qwen3-8B")
     parser.add_argument("--max-length", type=int, default=3072)
     parser.add_argument("--max-samples", type=int, default=None)
-    parser.add_argument("--num-train-epochs", type=float, default=1.0)
+    parser.add_argument("--num-train-epochs", type=float, default=8.0)
     parser.add_argument("--per-device-train-batch-size", type=int, default=1)
     parser.add_argument("--gradient-accumulation-steps", type=int, default=16)
-    parser.add_argument("--learning-rate", type=float, default=1e-5)
+    parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--weight-decay", type=float, default=0.0)
     parser.add_argument("--warmup-ratio", type=float, default=0.03)
-    parser.add_argument("--lr-scheduler-type", default="cosine")
+    parser.add_argument("--lr-scheduler-type", default="constant_with_warmup")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--logging-steps", type=int, default=10)
     parser.add_argument("--save-steps", type=int, default=200)
     parser.add_argument("--save-total-limit", type=int, default=3)
     parser.add_argument("--dataloader-num-workers", type=int, default=0)
+    parser.add_argument("--use-lora", action="store_true", default=True)
+    parser.add_argument("--no-use-lora", dest="use_lora", action="store_false")
+    parser.add_argument("--lora-r", type=int, default=32)
+    parser.add_argument("--lora-alpha", type=int, default=64)
+    parser.add_argument("--lora-dropout", type=float, default=0.05)
+    parser.add_argument("--lora-bias", default="none", choices=["none", "all", "lora_only"])
+    parser.add_argument(
+        "--lora-target-modules",
+        nargs="+",
+        default=[
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ],
+    )
     parser.add_argument("--bf16", action="store_true", default=True)
     parser.add_argument("--no-bf16", dest="bf16", action="store_false")
     parser.add_argument("--fp16", action="store_true", default=False)
@@ -265,6 +285,16 @@ class CausalLMCollator:
 def main() -> None:
     args = parse_args()
 
+    if args.use_lora:
+        if args.lora_r <= 0:
+            raise ValueError("--lora-r must be positive")
+        if args.lora_alpha <= 0:
+            raise ValueError("--lora-alpha must be positive")
+        if args.lora_dropout < 0 or args.lora_dropout >= 1:
+            raise ValueError("--lora-dropout must be in [0, 1)")
+        if not args.lora_target_modules:
+            raise ValueError("--lora-target-modules cannot be empty")
+
     if args.max_length <= 0:
         raise ValueError("--max-length 必须为正整数")
     if args.max_samples is not None and args.max_samples <= 0:
@@ -310,6 +340,20 @@ def main() -> None:
     )
     if args.gradient_checkpointing:
         model.config.use_cache = False
+    if args.use_lora:
+        if args.gradient_checkpointing and hasattr(model, "enable_input_require_grads"):
+            model.enable_input_require_grads()
+        lora_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            inference_mode=False,
+            r=args.lora_r,
+            lora_alpha=args.lora_alpha,
+            lora_dropout=args.lora_dropout,
+            bias=args.lora_bias,
+            target_modules=args.lora_target_modules,
+        )
+        model = get_peft_model(model, lora_config)
+        model.print_trainable_parameters()
 
     training_args = TrainingArguments(
         output_dir=args.output_dir,
@@ -333,14 +377,27 @@ def main() -> None:
         run_name=args.run_name,
         deepspeed=args.deepspeed,
         remove_unused_columns=False,
+        ddp_find_unused_parameters=False,
     )
 
+    tuning_mode = "lora" if args.use_lora else "full"
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=tokenized_dataset,
         data_collator=CausalLMCollator(tokenizer=tokenizer),
     )
+    print(
+        f"[SFT] tuning_mode={tuning_mode} "
+        f"epochs={args.num_train_epochs} lr={args.learning_rate} "
+        f"batch={args.per_device_train_batch_size} accum={args.gradient_accumulation_steps}"
+    )
+    if args.use_lora:
+        print(
+            "[SFT] lora_config="
+            f"r={args.lora_r} alpha={args.lora_alpha} dropout={args.lora_dropout} "
+            f"targets={args.lora_target_modules}"
+        )
     trainer.train(resume_from_checkpoint=get_last_checkpoint(args.output_dir))
     trainer.save_model(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
