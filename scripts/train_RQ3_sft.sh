@@ -29,7 +29,7 @@ export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:T
 
 # Limit CPU saturation from tokenizers, BLAS/OpenMP, DataLoader workers, and
 # DeepSpeed CPU offload threads. Override with MAX_CPU_CORES=16, etc.
-MAX_CPU_CORES="${MAX_CPU_CORES:-48}"
+MAX_CPU_CORES="${MAX_CPU_CORES:-16}"
 if ! [[ "$MAX_CPU_CORES" =~ ^[0-9]+$ ]] || [[ "$MAX_CPU_CORES" -lt 1 ]]; then
     echo "错误: MAX_CPU_CORES 必须为正整数，当前值: $MAX_CPU_CORES"
     exit 1
@@ -69,7 +69,7 @@ if [[ "$NUM_GPUS" -lt 1 ]]; then
     exit 1
 fi
 
-_default_deepspeed="configs/ds_zero2.json"
+_default_deepspeed="configs/ds_zero1.json"
 if [[ "${OFFLOAD_OPTIMIZER:-0}" == "1" ]]; then
     _default_deepspeed="configs/ds_zero2_offload.json"
 fi
@@ -105,7 +105,7 @@ SEED="${SEED:-42}"
 
 # ---- 日志与保存 ----
 LOGGING_STEPS="${LOGGING_STEPS:-1}"
-SAVE_STEPS="${SAVE_STEPS:-200}"
+SAVE_STEPS="${SAVE_STEPS:-50}"
 SAVE_TOTAL_LIMIT="${SAVE_TOTAL_LIMIT:-3}"
 WANDB_PROJECT="${WANDB_PROJECT:-PDP-RQ3-SFT}"
 REPORT_TO="${REPORT_TO:-wandb}"

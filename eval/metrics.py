@@ -204,24 +204,27 @@ def _mean_se(values: list[float]) -> dict[str, float]:
     return {"mean": mean, "se": se}
 
 
-def _format_f1(value: float, mean_se: dict[str, float] | None = None) -> str:
-    """Format F1 either as a plain value or as run-level mean ± SE."""
-    if mean_se is None:
-        return f"{value:.4f}"
+def _format_f1(mean_se: dict[str, float]) -> str:
+    """Format F1 as run-level mean ± SE."""
     return f"{mean_se['mean']:.4f} ± {mean_se['se']:.4f}"
 
 
-def build_rq2_result_f1_mean_se(entries: list[dict]) -> dict | None:
+def build_rq2_result_f1_mean_se(entries: list[dict]) -> dict:
     """Compute run-level Mean ± SE for result F1 metrics in RQ2 repeats."""
     by_run: dict[int, list[dict]] = defaultdict(list)
     for entry in entries:
-        run_id = entry.get("run_id")
-        if run_id is None:
-            return None
+        run_id = entry.get("run_id", 0)
         by_run[int(run_id)].append(entry)
 
-    if len(by_run) < 2:
-        return None
+    if not by_run:
+        return {
+            "level1_macro_f1": {"mean": 0.0, "se": 0.0},
+            "level1_micro_f1": {"mean": 0.0, "se": 0.0},
+            "level2_macro_f1": {"mean": 0.0, "se": 0.0},
+            "level2_micro_f1": {"mean": 0.0, "se": 0.0},
+            "level1_per_class": {},
+            "level2_per_class": {},
+        }
 
     run_metrics = []
     for run_id in sorted(by_run):
@@ -231,8 +234,8 @@ def build_rq2_result_f1_mean_se(entries: list[dict]) -> dict | None:
             [e["reference"] for e in run_entries],
         ))
 
-    level1_classes = ["起诉", "不起诉"]
-    level2_classes = ["起诉", "相对不起诉", "法定不起诉", "存疑不起诉"]
+    level1_classes = list(run_metrics[0]["level1_per_class"].keys())
+    level2_classes = list(run_metrics[0]["decision_per_class"].keys())
     return {
         "level1_macro_f1": _mean_se([m["decision_level1_macro_f1"] for m in run_metrics]),
         "level1_micro_f1": _mean_se([m["decision_level1_micro"]["f1"] for m in run_metrics]),
@@ -249,10 +252,31 @@ def build_rq2_result_f1_mean_se(entries: list[dict]) -> dict | None:
     }
 
 
+def _default_result_f1_mean_se(metrics: dict) -> dict:
+    """Build a zero-SE structure from aggregate metrics for single-run evaluation."""
+    return {
+        "level1_macro_f1": {"mean": metrics["decision_level1_macro_f1"], "se": 0.0},
+        "level1_micro_f1": {"mean": metrics["decision_level1_micro"]["f1"], "se": 0.0},
+        "level2_macro_f1": {"mean": metrics["decision_level2_macro_f1"], "se": 0.0},
+        "level2_micro_f1": {"mean": metrics["decision_level2_micro"]["f1"], "se": 0.0},
+        "level1_per_class": {
+            cls: {"mean": info["f1"], "se": 0.0}
+            for cls, info in metrics["level1_per_class"].items()
+        },
+        "level2_per_class": {
+            cls: {"mean": info["f1"], "se": 0.0}
+            for cls, info in metrics["decision_per_class"].items()
+        },
+    }
+
+
 def build_metrics_markdown(metrics: dict, *, model: str, variant: str,
                            num_samples: int,
                            result_f1_mean_se: dict | None = None) -> str:
     """将评估结果转为可读的 Markdown 表格。"""
+    if result_f1_mean_se is None:
+        result_f1_mean_se = _default_result_f1_mean_se(metrics)
+
     articles = {
         "precision": round(metrics["articles_precision"], 4),
         "recall": round(metrics["articles_recall"], 4),
@@ -266,8 +290,8 @@ def build_metrics_markdown(metrics: dict, *, model: str, variant: str,
         "level1_per_class": metrics["level1_per_class"],
         "per_class": metrics["decision_per_class"],
     }
-    level1_f1_stats = (result_f1_mean_se or {}).get("level1_per_class", {})
-    level2_f1_stats = (result_f1_mean_se or {}).get("level2_per_class", {})
+    level1_f1_stats = result_f1_mean_se["level1_per_class"]
+    level2_f1_stats = result_f1_mean_se["level2_per_class"]
 
     lines = [
         "# 评估指标",
@@ -289,10 +313,10 @@ def build_metrics_markdown(metrics: dict, *, model: str, variant: str,
         "",
         "| Metric | F1 |",
         "| --- | ---: |",
-        f"| Level1 Macro-F1 | {_format_f1(decision['level1_macro_f1'], (result_f1_mean_se or {}).get('level1_macro_f1'))} |",
-        f"| Level1 Micro-F1 | {_format_f1(decision['level1_micro_f1'], (result_f1_mean_se or {}).get('level1_micro_f1'))} |",
-        f"| Level2 Macro-F1 | {_format_f1(decision['level2_macro_f1'], (result_f1_mean_se or {}).get('level2_macro_f1'))} |",
-        f"| Level2 Micro-F1 | {_format_f1(decision['level2_micro_f1'], (result_f1_mean_se or {}).get('level2_micro_f1'))} |",
+        f"| Level1 Macro-F1 | {_format_f1(result_f1_mean_se['level1_macro_f1'])} |",
+        f"| Level1 Micro-F1 | {_format_f1(result_f1_mean_se['level1_micro_f1'])} |",
+        f"| Level2 Macro-F1 | {_format_f1(result_f1_mean_se['level2_macro_f1'])} |",
+        f"| Level2 Micro-F1 | {_format_f1(result_f1_mean_se['level2_micro_f1'])} |",
         "",
         "### Level1 各类别（起诉 / 不起诉）",
         "",
@@ -303,7 +327,7 @@ def build_metrics_markdown(metrics: dict, *, model: str, variant: str,
         info = decision["level1_per_class"][cls]
         lines.append(
             f"| {cls} | {info['precision']:.4f} | {info['recall']:.4f} | "
-            f"{_format_f1(info['f1'], level1_f1_stats.get(cls))} | {info['count']} |"
+            f"{_format_f1(level1_f1_stats[cls])} | {info['count']} |"
         )
 
     lines.extend([
@@ -318,7 +342,7 @@ def build_metrics_markdown(metrics: dict, *, model: str, variant: str,
         info = decision["per_class"][cls]
         lines.append(
             f"| {cls} | {info['precision']:.4f} | {info['recall']:.4f} | "
-            f"{_format_f1(info['f1'], level2_f1_stats.get(cls))} | {info['count']} |"
+            f"{_format_f1(level2_f1_stats[cls])} | {info['count']} |"
         )
 
     lines.append("")

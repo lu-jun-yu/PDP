@@ -1,0 +1,5248 @@
+{
+  "meta": {
+    "dataset": "pdp4k.test",
+    "source_file": "data\\public_sources\\test\\dataset_final.json",
+    "total_samples": 4630,
+    "counting_unit": "sample",
+    "extraction_priority": [
+      "procedure: 涉嫌X罪 / 案名",
+      "person_info: 因涉嫌X罪",
+      "fact: 公安机关认为构成X罪"
+    ],
+    "label_rule": "单罪→罪名；多罪→「A + B」组合；每条样本计 1 次"
+  },
+  "summary": {
+    "no_charge_samples": 5,
+    "single_charge_samples": 4549,
+    "multi_charge_samples": 76,
+    "unique_sample_labels": 238,
+    "unique_single_charges": 190,
+    "extraction_source": {
+      "procedure_涉嫌": 4054,
+      "procedure_案名": 551,
+      "person_info_only": 22,
+      "none": 3
+    },
+    "decision_counts": {
+      "起诉": 4008,
+      "法定不起诉": 41,
+      "相对不起诉": 480,
+      "存疑不起诉": 101
+    }
+  },
+  "sample_distribution": [
+    {
+      "label": "危险驾驶罪",
+      "count": 1441,
+      "ratio": 0.311231,
+      "percent": 31.1231
+    },
+    {
+      "label": "盗窃罪",
+      "count": 627,
+      "ratio": 0.135421,
+      "percent": 13.5421
+    },
+    {
+      "label": "故意伤害罪",
+      "count": 346,
+      "ratio": 0.07473,
+      "percent": 7.473
+    },
+    {
+      "label": "交通肇事罪",
+      "count": 279,
+      "ratio": 0.060259,
+      "percent": 6.0259
+    },
+    {
+      "label": "诈骗罪",
+      "count": 226,
+      "ratio": 0.048812,
+      "percent": 4.8812
+    },
+    {
+      "label": "帮助信息网络犯罪活动罪",
+      "count": 184,
+      "ratio": 0.039741,
+      "percent": 3.9741
+    },
+    {
+      "label": "贩卖毒品罪",
+      "count": 165,
+      "ratio": 0.035637,
+      "percent": 3.5637
+    },
+    {
+      "label": "掩饰、隐瞒犯罪所得罪",
+      "count": 122,
+      "ratio": 0.02635,
+      "percent": 2.635
+    },
+    {
+      "label": "走私普通货物罪",
+      "count": 88,
+      "ratio": 0.019006,
+      "percent": 1.9006
+    },
+    {
+      "label": "寻衅滋事罪",
+      "count": 70,
+      "ratio": 0.015119,
+      "percent": 1.5119
+    },
+    {
+      "label": "非法占用农用地罪",
+      "count": 60,
+      "ratio": 0.012959,
+      "percent": 1.2959
+    },
+    {
+      "label": "开设赌场罪",
+      "count": 56,
+      "ratio": 0.012095,
+      "percent": 1.2095
+    },
+    {
+      "label": "妨害公务罪",
+      "count": 39,
+      "ratio": 0.008423,
+      "percent": 0.8423
+    },
+    {
+      "label": "故意杀人罪",
+      "count": 38,
+      "ratio": 0.008207,
+      "percent": 0.8207
+    },
+    {
+      "label": "非法经营罪",
+      "count": 35,
+      "ratio": 0.007559,
+      "percent": 0.7559
+    },
+    {
+      "label": "非法狩猎罪",
+      "count": 29,
+      "ratio": 0.006263,
+      "percent": 0.6263
+    },
+    {
+      "label": "合同诈骗罪",
+      "count": 26,
+      "ratio": 0.005616,
+      "percent": 0.5616
+    },
+    {
+      "label": "信用卡诈骗罪",
+      "count": 25,
+      "ratio": 0.0054,
+      "percent": 0.54
+    },
+    {
+      "label": "重大责任事故罪",
+      "count": 25,
+      "ratio": 0.0054,
+      "percent": 0.54
+    },
+    {
+      "label": "赌博罪",
+      "count": 23,
+      "ratio": 0.004968,
+      "percent": 0.4968
+    },
+    {
+      "label": "虚开增值税专用发票罪",
+      "count": 23,
+      "ratio": 0.004968,
+      "percent": 0.4968
+    },
+    {
+      "label": "非法拘禁罪",
+      "count": 21,
+      "ratio": 0.004536,
+      "percent": 0.4536
+    },
+    {
+      "label": "抢劫罪",
+      "count": 20,
+      "ratio": 0.00432,
+      "percent": 0.432
+    },
+    {
+      "label": "滥伐林木罪",
+      "count": 19,
+      "ratio": 0.004104,
+      "percent": 0.4104
+    },
+    {
+      "label": "运输毒品罪",
+      "count": 18,
+      "ratio": 0.003888,
+      "percent": 0.3888
+    },
+    {
+      "label": "故意毁坏财物罪",
+      "count": 18,
+      "ratio": 0.003888,
+      "percent": 0.3888
+    },
+    {
+      "label": "容留卖淫罪",
+      "count": 17,
+      "ratio": 0.003672,
+      "percent": 0.3672
+    },
+    {
+      "label": "容留他人吸毒罪",
+      "count": 16,
+      "ratio": 0.003456,
+      "percent": 0.3456
+    },
+    {
+      "label": "非法持有枪支罪",
+      "count": 15,
+      "ratio": 0.00324,
+      "percent": 0.324
+    },
+    {
+      "label": "贪污罪",
+      "count": 14,
+      "ratio": 0.003024,
+      "percent": 0.3024
+    },
+    {
+      "label": "受贿罪",
+      "count": 13,
+      "ratio": 0.002808,
+      "percent": 0.2808
+    },
+    {
+      "label": "掩饰、隐瞒犯罪所得罪 + 盗窃罪",
+      "count": 13,
+      "ratio": 0.002808,
+      "percent": 0.2808
+    },
+    {
+      "label": "非法采矿罪",
+      "count": 13,
+      "ratio": 0.002808,
+      "percent": 0.2808
+    },
+    {
+      "label": "过失致人死亡罪",
+      "count": 12,
+      "ratio": 0.002592,
+      "percent": 0.2592
+    },
+    {
+      "label": "失火罪",
+      "count": 12,
+      "ratio": 0.002592,
+      "percent": 0.2592
+    },
+    {
+      "label": "敲诈勒索罪",
+      "count": 12,
+      "ratio": 0.002592,
+      "percent": 0.2592
+    },
+    {
+      "label": "职务侵占罪",
+      "count": 11,
+      "ratio": 0.002376,
+      "percent": 0.2376
+    },
+    {
+      "label": "非法制造枪支罪",
+      "count": 11,
+      "ratio": 0.002376,
+      "percent": 0.2376
+    },
+    {
+      "label": "有害食品罪",
+      "count": 10,
+      "ratio": 0.00216,
+      "percent": 0.216
+    },
+    {
+      "label": "使用虚假身份证件罪",
+      "count": 10,
+      "ratio": 0.00216,
+      "percent": 0.216
+    },
+    {
+      "label": "销售假冒注册商标的商品罪",
+      "count": 10,
+      "ratio": 0.00216,
+      "percent": 0.216
+    },
+    {
+      "label": "拒不支付劳动报酬罪",
+      "count": 9,
+      "ratio": 0.001944,
+      "percent": 0.1944
+    },
+    {
+      "label": "非法持有毒品罪",
+      "count": 9,
+      "ratio": 0.001944,
+      "percent": 0.1944
+    },
+    {
+      "label": "裁定罪",
+      "count": 9,
+      "ratio": 0.001944,
+      "percent": 0.1944
+    },
+    {
+      "label": "非法吸收公众存款罪",
+      "count": 9,
+      "ratio": 0.001944,
+      "percent": 0.1944
+    },
+    {
+      "label": "非法捕捞水产品罪",
+      "count": 8,
+      "ratio": 0.001728,
+      "percent": 0.1728
+    },
+    {
+      "label": "帮助信息网络犯罪活动罪 + 活动罪",
+      "count": 8,
+      "ratio": 0.001728,
+      "percent": 0.1728
+    },
+    {
+      "label": "销售伪劣产品罪",
+      "count": 8,
+      "ratio": 0.001728,
+      "percent": 0.1728
+    },
+    {
+      "label": "盗伐林木罪",
+      "count": 7,
+      "ratio": 0.001512,
+      "percent": 0.1512
+    },
+    {
+      "label": "聚众斗殴罪",
+      "count": 7,
+      "ratio": 0.001512,
+      "percent": 0.1512
+    },
+    {
+      "label": "买卖国家机关证件罪",
+      "count": 7,
+      "ratio": 0.001512,
+      "percent": 0.1512
+    },
+    {
+      "label": "介绍卖淫罪",
+      "count": 7,
+      "ratio": 0.001512,
+      "percent": 0.1512
+    },
+    {
+      "label": "濒危野生动物罪",
+      "count": 7,
+      "ratio": 0.001512,
+      "percent": 0.1512
+    },
+    {
+      "label": "非法侵入住宅罪",
+      "count": 7,
+      "ratio": 0.001512,
+      "percent": 0.1512
+    },
+    {
+      "label": "贩卖毒品罪 + 非法持有毒品罪",
+      "count": 6,
+      "ratio": 0.001296,
+      "percent": 0.1296
+    },
+    {
+      "label": "放火罪",
+      "count": 6,
+      "ratio": 0.001296,
+      "percent": 0.1296
+    },
+    {
+      "label": "变造身份证件罪",
+      "count": 6,
+      "ratio": 0.001296,
+      "percent": 0.1296
+    },
+    {
+      "label": "强奸罪",
+      "count": 5,
+      "ratio": 0.00108,
+      "percent": 0.108
+    },
+    {
+      "label": "危害国家重点保护植物罪",
+      "count": 5,
+      "ratio": 0.00108,
+      "percent": 0.108
+    },
+    {
+      "label": "挪用资金罪",
+      "count": 5,
+      "ratio": 0.00108,
+      "percent": 0.108
+    },
+    {
+      "label": "（未提取）",
+      "count": 5,
+      "ratio": 0.00108,
+      "percent": 0.108
+    },
+    {
+      "label": "侵犯公民个人信息罪",
+      "count": 5,
+      "ratio": 0.00108,
+      "percent": 0.108
+    },
+    {
+      "label": "销售假药罪",
+      "count": 5,
+      "ratio": 0.00108,
+      "percent": 0.108
+    },
+    {
+      "label": "行贿罪",
+      "count": 4,
+      "ratio": 0.000864,
+      "percent": 0.0864
+    },
+    {
+      "label": "物品罪",
+      "count": 4,
+      "ratio": 0.000864,
+      "percent": 0.0864
+    },
+    {
+      "label": "制造毒品罪",
+      "count": 4,
+      "ratio": 0.000864,
+      "percent": 0.0864
+    },
+    {
+      "label": "非国家工作人员受贿罪",
+      "count": 4,
+      "ratio": 0.000864,
+      "percent": 0.0864
+    },
+    {
+      "label": "销售不符合安全标准的食品罪",
+      "count": 4,
+      "ratio": 0.000864,
+      "percent": 0.0864
+    },
+    {
+      "label": "偷越国（边）境罪",
+      "count": 4,
+      "ratio": 0.000864,
+      "percent": 0.0864
+    },
+    {
+      "label": "玩忽职守罪",
+      "count": 4,
+      "ratio": 0.000864,
+      "percent": 0.0864
+    },
+    {
+      "label": "污染环境罪",
+      "count": 4,
+      "ratio": 0.000864,
+      "percent": 0.0864
+    },
+    {
+      "label": "袭警罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "贩卖毒品罪 + 运输毒品罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "窝藏罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "集资诈骗罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "走私废物罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "非法种植毒品原植物罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "犯危险驾驶罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "包庇罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "非法行医罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "弹药罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "以危险方法危害公共安全罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "妨害药品管理罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "过失致人重伤罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "串通投标罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "投放危险物质罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "抢夺罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "非法储存爆炸物罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "非法买卖枪支罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "盗掘古文化遗址罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "利用邪教组织破坏法律实施罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "招摇撞骗罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "破坏公用电信设施罪",
+      "count": 3,
+      "ratio": 0.000648,
+      "percent": 0.0648
+    },
+    {
+      "label": "绑架罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "帮助毁灭证据罪 + 走私普通货物罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "濒危野生动物制品罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "人盗窃罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "危险作业罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "骗取贷款罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "制造毒品罪 + 贩卖毒品罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "重婚罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "走私毒品罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "帮助信息网络犯罪活动罪 + 掩饰、隐瞒犯罪所得罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "拒不执行判决罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "非法提供信用卡信息罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "滥用职权罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "伪造事业单位印章罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "过失投放危险物质罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "出售非法制造的发票罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "伪造公司印章罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "贷款诈骗罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "贩卖淫秽物品牟利罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "非法利用信息网络罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "破坏电力设备罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "运送他人偷越国（边）境罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "销售非法制造的注册商标标识罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "偷越国境罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "非法转让土地使用权罪",
+      "count": 2,
+      "ratio": 0.000432,
+      "percent": 0.0432
+    },
+    {
+      "label": "贩卖毒品罪 + 走私毒品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "容留他人吸毒罪 + 盗窃罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "寻衅滋事罪 + 强迫交易罪 + 非法吸收公众存款罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法采伐国家重点保护植物罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法毁坏国家重点保护植物罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "犯故意伤害罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法买卖制毒物品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "贩卖毒品罪 + 非法持有枪支罪 + 非法持有毒品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "故意伤害罪 + 盗窃罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "骗取出口退税罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "掩饰、隐瞒犯罪所得罪 + 走私普通货物罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "虚开增值税专用发票罪 + 骗取出口退税罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "故意伤害罪 + 窝藏罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "污染环境罪 + 非法采矿罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "销售有害食品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "虚开发票罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "伪证罪 + 盗窃罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "寻衅滋事罪 + 故意伤害罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "伪证罪 + 妨害作证罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "窃照专用器材罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "诈骗、偷越国（边）境罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "印章罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "偷越国(边)境罪 + 组织他人偷越国(边)境罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "犯故意毁坏财物罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "虚假诉讼罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "组织他人偷越国（边）境罪 + 运送他人偷越国（边）境罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "合同诈骗罪 + 非法吸收公众存款罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "开设赌场罪 + 故意伤害罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "传播性病罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "伪造证据罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "行贿罪 + 贩卖毒品罪 + 非法采矿罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "介绍卖淫罪 + 容留卖淫罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "侮辱尸体罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法制造注册商标标识罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法储存枪支罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "等四人盗伐林木罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "犯故意杀人罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "偷越国(边)境罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "传播淫秽物品牟利罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "容留他人吸毒罪 + 贩卖毒品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "寻衅滋事罪 + 敲诈勒索罪 + 盗伐林木罪 + 行贿罪 + 非法拘禁罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "出售非法制造的发票罪 + 虚**票罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "开设赌场罪 + 聚众斗殴罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "危险驾驶罪 + 窝藏罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "参加黑社会性质组织罪 + 寻衅滋事罪 + 故意伤害罪 + 领导黑社会性质组织罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "过失以危险方法危害公共安全罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法买卖弹药罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "逃税罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "销售有毒有害食品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "变造国家机关证件罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "组织他人偷越国(边)境罪 + 运送他人偷越国(边)境罪 + 运送他人偷越国（边）境罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "破坏生产经营罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "容留他人吸食毒品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "妨害信用卡管理罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "高空抛物罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法处置查封的财产罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "假冒注册商标罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "犯贩卖毒品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "涉贩卖毒品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "毁坏国家重点保护植物罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "人非法经营罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "拐卖儿童罪 + 诈骗罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法持有毒品原植物种子罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "伪造企业印章罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "盗伐林木罪 + 非法运输盗伐的林木罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法持有、私藏枪支、弹药罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "留他人吸毒罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "濒危野生动物罪 + 非法狩猎罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "帮助毁灭证据罪 + 故意杀人罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "犯盗窃罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "假冒注册商标罪 + 销售假冒注册商标的商品罪 + 销售非法制造的注册商标标识罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "组织考试作弊罪 + 诈骗罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法持有枪支罪 + 非法狩猎罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法出售增值税专用发票罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "破坏交通工具罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "国有事业单位人员滥用职权罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "变造居民身份证件罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "储存枪支罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "寻衅滋事罪 + 敲诈勒索罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法制造枪支弹药罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "制造毒品罪 + 盗窃罪 + 贩卖毒品罪 + 运输毒品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "伪造货币罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "买卖身份证件罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "盗窃罪 + 破坏电力设备罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法制造罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法占用农用地、危险驾驶罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "伪造国家机关公文罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "故意伤害、危险驾驶罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "故意毁坏财物罪 + 贩卖毒品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法持有、非法制造枪支罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法持有枪支、储存爆炸物罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "人开设赌场罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "盗窃一罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "故意损毁名胜古迹罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "组织卖淫、协助组织卖淫罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法占用农地罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "寻衅滋事罪 + 赌博罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "包庇罪 + 聚众斗殴罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "帮助毁灭证据罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "赌博一罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "洗钱罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "组织、领导传销活动罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "伪造金融票证罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法私藏枪支罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "窝藏毒品罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "寻衅滋事案罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "人赌博罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "危害珍贵野生动物罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "盗窃罪 + 诈骗罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法邮寄弹药罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "破坏监管秩序罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "开设赌场罪 + 赌博罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "买卖国家机关证件、印章罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "人侵犯公民个人信息罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "买卖枪支罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "挪用公款罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "非法持有枪支、弹药罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "组织卖淫罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "出售陆生野生动物罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    },
+    {
+      "label": "交通肇事一罪",
+      "count": 1,
+      "ratio": 0.000216,
+      "percent": 0.0216
+    }
+  ],
+  "single_charge_distribution": [
+    {
+      "charge": "危险驾驶罪",
+      "count": 1441,
+      "ratio_of_single_charge_samples": 0.316773,
+      "percent_of_single_charge_samples": 31.6773,
+      "ratio_of_all_samples": 0.311231,
+      "percent_of_all_samples": 31.1231
+    },
+    {
+      "charge": "盗窃罪",
+      "count": 627,
+      "ratio_of_single_charge_samples": 0.137832,
+      "percent_of_single_charge_samples": 13.7832,
+      "ratio_of_all_samples": 0.135421,
+      "percent_of_all_samples": 13.5421
+    },
+    {
+      "charge": "故意伤害罪",
+      "count": 346,
+      "ratio_of_single_charge_samples": 0.076061,
+      "percent_of_single_charge_samples": 7.6061,
+      "ratio_of_all_samples": 0.07473,
+      "percent_of_all_samples": 7.473
+    },
+    {
+      "charge": "交通肇事罪",
+      "count": 279,
+      "ratio_of_single_charge_samples": 0.061332,
+      "percent_of_single_charge_samples": 6.1332,
+      "ratio_of_all_samples": 0.060259,
+      "percent_of_all_samples": 6.0259
+    },
+    {
+      "charge": "诈骗罪",
+      "count": 226,
+      "ratio_of_single_charge_samples": 0.049681,
+      "percent_of_single_charge_samples": 4.9681,
+      "ratio_of_all_samples": 0.048812,
+      "percent_of_all_samples": 4.8812
+    },
+    {
+      "charge": "帮助信息网络犯罪活动罪",
+      "count": 184,
+      "ratio_of_single_charge_samples": 0.040448,
+      "percent_of_single_charge_samples": 4.0448,
+      "ratio_of_all_samples": 0.039741,
+      "percent_of_all_samples": 3.9741
+    },
+    {
+      "charge": "贩卖毒品罪",
+      "count": 165,
+      "ratio_of_single_charge_samples": 0.036272,
+      "percent_of_single_charge_samples": 3.6272,
+      "ratio_of_all_samples": 0.035637,
+      "percent_of_all_samples": 3.5637
+    },
+    {
+      "charge": "掩饰、隐瞒犯罪所得罪",
+      "count": 122,
+      "ratio_of_single_charge_samples": 0.026819,
+      "percent_of_single_charge_samples": 2.6819,
+      "ratio_of_all_samples": 0.02635,
+      "percent_of_all_samples": 2.635
+    },
+    {
+      "charge": "走私普通货物罪",
+      "count": 88,
+      "ratio_of_single_charge_samples": 0.019345,
+      "percent_of_single_charge_samples": 1.9345,
+      "ratio_of_all_samples": 0.019006,
+      "percent_of_all_samples": 1.9006
+    },
+    {
+      "charge": "寻衅滋事罪",
+      "count": 70,
+      "ratio_of_single_charge_samples": 0.015388,
+      "percent_of_single_charge_samples": 1.5388,
+      "ratio_of_all_samples": 0.015119,
+      "percent_of_all_samples": 1.5119
+    },
+    {
+      "charge": "非法占用农用地罪",
+      "count": 60,
+      "ratio_of_single_charge_samples": 0.01319,
+      "percent_of_single_charge_samples": 1.319,
+      "ratio_of_all_samples": 0.012959,
+      "percent_of_all_samples": 1.2959
+    },
+    {
+      "charge": "开设赌场罪",
+      "count": 56,
+      "ratio_of_single_charge_samples": 0.01231,
+      "percent_of_single_charge_samples": 1.231,
+      "ratio_of_all_samples": 0.012095,
+      "percent_of_all_samples": 1.2095
+    },
+    {
+      "charge": "妨害公务罪",
+      "count": 39,
+      "ratio_of_single_charge_samples": 0.008573,
+      "percent_of_single_charge_samples": 0.8573,
+      "ratio_of_all_samples": 0.008423,
+      "percent_of_all_samples": 0.8423
+    },
+    {
+      "charge": "故意杀人罪",
+      "count": 38,
+      "ratio_of_single_charge_samples": 0.008353,
+      "percent_of_single_charge_samples": 0.8353,
+      "ratio_of_all_samples": 0.008207,
+      "percent_of_all_samples": 0.8207
+    },
+    {
+      "charge": "非法经营罪",
+      "count": 35,
+      "ratio_of_single_charge_samples": 0.007694,
+      "percent_of_single_charge_samples": 0.7694,
+      "ratio_of_all_samples": 0.007559,
+      "percent_of_all_samples": 0.7559
+    },
+    {
+      "charge": "非法狩猎罪",
+      "count": 29,
+      "ratio_of_single_charge_samples": 0.006375,
+      "percent_of_single_charge_samples": 0.6375,
+      "ratio_of_all_samples": 0.006263,
+      "percent_of_all_samples": 0.6263
+    },
+    {
+      "charge": "合同诈骗罪",
+      "count": 26,
+      "ratio_of_single_charge_samples": 0.005716,
+      "percent_of_single_charge_samples": 0.5716,
+      "ratio_of_all_samples": 0.005616,
+      "percent_of_all_samples": 0.5616
+    },
+    {
+      "charge": "信用卡诈骗罪",
+      "count": 25,
+      "ratio_of_single_charge_samples": 0.005496,
+      "percent_of_single_charge_samples": 0.5496,
+      "ratio_of_all_samples": 0.0054,
+      "percent_of_all_samples": 0.54
+    },
+    {
+      "charge": "重大责任事故罪",
+      "count": 25,
+      "ratio_of_single_charge_samples": 0.005496,
+      "percent_of_single_charge_samples": 0.5496,
+      "ratio_of_all_samples": 0.0054,
+      "percent_of_all_samples": 0.54
+    },
+    {
+      "charge": "赌博罪",
+      "count": 23,
+      "ratio_of_single_charge_samples": 0.005056,
+      "percent_of_single_charge_samples": 0.5056,
+      "ratio_of_all_samples": 0.004968,
+      "percent_of_all_samples": 0.4968
+    },
+    {
+      "charge": "虚开增值税专用发票罪",
+      "count": 23,
+      "ratio_of_single_charge_samples": 0.005056,
+      "percent_of_single_charge_samples": 0.5056,
+      "ratio_of_all_samples": 0.004968,
+      "percent_of_all_samples": 0.4968
+    },
+    {
+      "charge": "非法拘禁罪",
+      "count": 21,
+      "ratio_of_single_charge_samples": 0.004616,
+      "percent_of_single_charge_samples": 0.4616,
+      "ratio_of_all_samples": 0.004536,
+      "percent_of_all_samples": 0.4536
+    },
+    {
+      "charge": "抢劫罪",
+      "count": 20,
+      "ratio_of_single_charge_samples": 0.004397,
+      "percent_of_single_charge_samples": 0.4397,
+      "ratio_of_all_samples": 0.00432,
+      "percent_of_all_samples": 0.432
+    },
+    {
+      "charge": "滥伐林木罪",
+      "count": 19,
+      "ratio_of_single_charge_samples": 0.004177,
+      "percent_of_single_charge_samples": 0.4177,
+      "ratio_of_all_samples": 0.004104,
+      "percent_of_all_samples": 0.4104
+    },
+    {
+      "charge": "运输毒品罪",
+      "count": 18,
+      "ratio_of_single_charge_samples": 0.003957,
+      "percent_of_single_charge_samples": 0.3957,
+      "ratio_of_all_samples": 0.003888,
+      "percent_of_all_samples": 0.3888
+    },
+    {
+      "charge": "故意毁坏财物罪",
+      "count": 18,
+      "ratio_of_single_charge_samples": 0.003957,
+      "percent_of_single_charge_samples": 0.3957,
+      "ratio_of_all_samples": 0.003888,
+      "percent_of_all_samples": 0.3888
+    },
+    {
+      "charge": "容留卖淫罪",
+      "count": 17,
+      "ratio_of_single_charge_samples": 0.003737,
+      "percent_of_single_charge_samples": 0.3737,
+      "ratio_of_all_samples": 0.003672,
+      "percent_of_all_samples": 0.3672
+    },
+    {
+      "charge": "容留他人吸毒罪",
+      "count": 16,
+      "ratio_of_single_charge_samples": 0.003517,
+      "percent_of_single_charge_samples": 0.3517,
+      "ratio_of_all_samples": 0.003456,
+      "percent_of_all_samples": 0.3456
+    },
+    {
+      "charge": "非法持有枪支罪",
+      "count": 15,
+      "ratio_of_single_charge_samples": 0.003297,
+      "percent_of_single_charge_samples": 0.3297,
+      "ratio_of_all_samples": 0.00324,
+      "percent_of_all_samples": 0.324
+    },
+    {
+      "charge": "贪污罪",
+      "count": 14,
+      "ratio_of_single_charge_samples": 0.003078,
+      "percent_of_single_charge_samples": 0.3078,
+      "ratio_of_all_samples": 0.003024,
+      "percent_of_all_samples": 0.3024
+    },
+    {
+      "charge": "受贿罪",
+      "count": 13,
+      "ratio_of_single_charge_samples": 0.002858,
+      "percent_of_single_charge_samples": 0.2858,
+      "ratio_of_all_samples": 0.002808,
+      "percent_of_all_samples": 0.2808
+    },
+    {
+      "charge": "非法采矿罪",
+      "count": 13,
+      "ratio_of_single_charge_samples": 0.002858,
+      "percent_of_single_charge_samples": 0.2858,
+      "ratio_of_all_samples": 0.002808,
+      "percent_of_all_samples": 0.2808
+    },
+    {
+      "charge": "过失致人死亡罪",
+      "count": 12,
+      "ratio_of_single_charge_samples": 0.002638,
+      "percent_of_single_charge_samples": 0.2638,
+      "ratio_of_all_samples": 0.002592,
+      "percent_of_all_samples": 0.2592
+    },
+    {
+      "charge": "失火罪",
+      "count": 12,
+      "ratio_of_single_charge_samples": 0.002638,
+      "percent_of_single_charge_samples": 0.2638,
+      "ratio_of_all_samples": 0.002592,
+      "percent_of_all_samples": 0.2592
+    },
+    {
+      "charge": "敲诈勒索罪",
+      "count": 12,
+      "ratio_of_single_charge_samples": 0.002638,
+      "percent_of_single_charge_samples": 0.2638,
+      "ratio_of_all_samples": 0.002592,
+      "percent_of_all_samples": 0.2592
+    },
+    {
+      "charge": "职务侵占罪",
+      "count": 11,
+      "ratio_of_single_charge_samples": 0.002418,
+      "percent_of_single_charge_samples": 0.2418,
+      "ratio_of_all_samples": 0.002376,
+      "percent_of_all_samples": 0.2376
+    },
+    {
+      "charge": "非法制造枪支罪",
+      "count": 11,
+      "ratio_of_single_charge_samples": 0.002418,
+      "percent_of_single_charge_samples": 0.2418,
+      "ratio_of_all_samples": 0.002376,
+      "percent_of_all_samples": 0.2376
+    },
+    {
+      "charge": "有害食品罪",
+      "count": 10,
+      "ratio_of_single_charge_samples": 0.002198,
+      "percent_of_single_charge_samples": 0.2198,
+      "ratio_of_all_samples": 0.00216,
+      "percent_of_all_samples": 0.216
+    },
+    {
+      "charge": "使用虚假身份证件罪",
+      "count": 10,
+      "ratio_of_single_charge_samples": 0.002198,
+      "percent_of_single_charge_samples": 0.2198,
+      "ratio_of_all_samples": 0.00216,
+      "percent_of_all_samples": 0.216
+    },
+    {
+      "charge": "销售假冒注册商标的商品罪",
+      "count": 10,
+      "ratio_of_single_charge_samples": 0.002198,
+      "percent_of_single_charge_samples": 0.2198,
+      "ratio_of_all_samples": 0.00216,
+      "percent_of_all_samples": 0.216
+    },
+    {
+      "charge": "拒不支付劳动报酬罪",
+      "count": 9,
+      "ratio_of_single_charge_samples": 0.001978,
+      "percent_of_single_charge_samples": 0.1978,
+      "ratio_of_all_samples": 0.001944,
+      "percent_of_all_samples": 0.1944
+    },
+    {
+      "charge": "非法持有毒品罪",
+      "count": 9,
+      "ratio_of_single_charge_samples": 0.001978,
+      "percent_of_single_charge_samples": 0.1978,
+      "ratio_of_all_samples": 0.001944,
+      "percent_of_all_samples": 0.1944
+    },
+    {
+      "charge": "裁定罪",
+      "count": 9,
+      "ratio_of_single_charge_samples": 0.001978,
+      "percent_of_single_charge_samples": 0.1978,
+      "ratio_of_all_samples": 0.001944,
+      "percent_of_all_samples": 0.1944
+    },
+    {
+      "charge": "非法吸收公众存款罪",
+      "count": 9,
+      "ratio_of_single_charge_samples": 0.001978,
+      "percent_of_single_charge_samples": 0.1978,
+      "ratio_of_all_samples": 0.001944,
+      "percent_of_all_samples": 0.1944
+    },
+    {
+      "charge": "非法捕捞水产品罪",
+      "count": 8,
+      "ratio_of_single_charge_samples": 0.001759,
+      "percent_of_single_charge_samples": 0.1759,
+      "ratio_of_all_samples": 0.001728,
+      "percent_of_all_samples": 0.1728
+    },
+    {
+      "charge": "销售伪劣产品罪",
+      "count": 8,
+      "ratio_of_single_charge_samples": 0.001759,
+      "percent_of_single_charge_samples": 0.1759,
+      "ratio_of_all_samples": 0.001728,
+      "percent_of_all_samples": 0.1728
+    },
+    {
+      "charge": "盗伐林木罪",
+      "count": 7,
+      "ratio_of_single_charge_samples": 0.001539,
+      "percent_of_single_charge_samples": 0.1539,
+      "ratio_of_all_samples": 0.001512,
+      "percent_of_all_samples": 0.1512
+    },
+    {
+      "charge": "聚众斗殴罪",
+      "count": 7,
+      "ratio_of_single_charge_samples": 0.001539,
+      "percent_of_single_charge_samples": 0.1539,
+      "ratio_of_all_samples": 0.001512,
+      "percent_of_all_samples": 0.1512
+    },
+    {
+      "charge": "买卖国家机关证件罪",
+      "count": 7,
+      "ratio_of_single_charge_samples": 0.001539,
+      "percent_of_single_charge_samples": 0.1539,
+      "ratio_of_all_samples": 0.001512,
+      "percent_of_all_samples": 0.1512
+    },
+    {
+      "charge": "介绍卖淫罪",
+      "count": 7,
+      "ratio_of_single_charge_samples": 0.001539,
+      "percent_of_single_charge_samples": 0.1539,
+      "ratio_of_all_samples": 0.001512,
+      "percent_of_all_samples": 0.1512
+    },
+    {
+      "charge": "濒危野生动物罪",
+      "count": 7,
+      "ratio_of_single_charge_samples": 0.001539,
+      "percent_of_single_charge_samples": 0.1539,
+      "ratio_of_all_samples": 0.001512,
+      "percent_of_all_samples": 0.1512
+    },
+    {
+      "charge": "非法侵入住宅罪",
+      "count": 7,
+      "ratio_of_single_charge_samples": 0.001539,
+      "percent_of_single_charge_samples": 0.1539,
+      "ratio_of_all_samples": 0.001512,
+      "percent_of_all_samples": 0.1512
+    },
+    {
+      "charge": "放火罪",
+      "count": 6,
+      "ratio_of_single_charge_samples": 0.001319,
+      "percent_of_single_charge_samples": 0.1319,
+      "ratio_of_all_samples": 0.001296,
+      "percent_of_all_samples": 0.1296
+    },
+    {
+      "charge": "变造身份证件罪",
+      "count": 6,
+      "ratio_of_single_charge_samples": 0.001319,
+      "percent_of_single_charge_samples": 0.1319,
+      "ratio_of_all_samples": 0.001296,
+      "percent_of_all_samples": 0.1296
+    },
+    {
+      "charge": "强奸罪",
+      "count": 5,
+      "ratio_of_single_charge_samples": 0.001099,
+      "percent_of_single_charge_samples": 0.1099,
+      "ratio_of_all_samples": 0.00108,
+      "percent_of_all_samples": 0.108
+    },
+    {
+      "charge": "危害国家重点保护植物罪",
+      "count": 5,
+      "ratio_of_single_charge_samples": 0.001099,
+      "percent_of_single_charge_samples": 0.1099,
+      "ratio_of_all_samples": 0.00108,
+      "percent_of_all_samples": 0.108
+    },
+    {
+      "charge": "挪用资金罪",
+      "count": 5,
+      "ratio_of_single_charge_samples": 0.001099,
+      "percent_of_single_charge_samples": 0.1099,
+      "ratio_of_all_samples": 0.00108,
+      "percent_of_all_samples": 0.108
+    },
+    {
+      "charge": "侵犯公民个人信息罪",
+      "count": 5,
+      "ratio_of_single_charge_samples": 0.001099,
+      "percent_of_single_charge_samples": 0.1099,
+      "ratio_of_all_samples": 0.00108,
+      "percent_of_all_samples": 0.108
+    },
+    {
+      "charge": "销售假药罪",
+      "count": 5,
+      "ratio_of_single_charge_samples": 0.001099,
+      "percent_of_single_charge_samples": 0.1099,
+      "ratio_of_all_samples": 0.00108,
+      "percent_of_all_samples": 0.108
+    },
+    {
+      "charge": "行贿罪",
+      "count": 4,
+      "ratio_of_single_charge_samples": 0.000879,
+      "percent_of_single_charge_samples": 0.0879,
+      "ratio_of_all_samples": 0.000864,
+      "percent_of_all_samples": 0.0864
+    },
+    {
+      "charge": "物品罪",
+      "count": 4,
+      "ratio_of_single_charge_samples": 0.000879,
+      "percent_of_single_charge_samples": 0.0879,
+      "ratio_of_all_samples": 0.000864,
+      "percent_of_all_samples": 0.0864
+    },
+    {
+      "charge": "制造毒品罪",
+      "count": 4,
+      "ratio_of_single_charge_samples": 0.000879,
+      "percent_of_single_charge_samples": 0.0879,
+      "ratio_of_all_samples": 0.000864,
+      "percent_of_all_samples": 0.0864
+    },
+    {
+      "charge": "非国家工作人员受贿罪",
+      "count": 4,
+      "ratio_of_single_charge_samples": 0.000879,
+      "percent_of_single_charge_samples": 0.0879,
+      "ratio_of_all_samples": 0.000864,
+      "percent_of_all_samples": 0.0864
+    },
+    {
+      "charge": "销售不符合安全标准的食品罪",
+      "count": 4,
+      "ratio_of_single_charge_samples": 0.000879,
+      "percent_of_single_charge_samples": 0.0879,
+      "ratio_of_all_samples": 0.000864,
+      "percent_of_all_samples": 0.0864
+    },
+    {
+      "charge": "偷越国（边）境罪",
+      "count": 4,
+      "ratio_of_single_charge_samples": 0.000879,
+      "percent_of_single_charge_samples": 0.0879,
+      "ratio_of_all_samples": 0.000864,
+      "percent_of_all_samples": 0.0864
+    },
+    {
+      "charge": "玩忽职守罪",
+      "count": 4,
+      "ratio_of_single_charge_samples": 0.000879,
+      "percent_of_single_charge_samples": 0.0879,
+      "ratio_of_all_samples": 0.000864,
+      "percent_of_all_samples": 0.0864
+    },
+    {
+      "charge": "污染环境罪",
+      "count": 4,
+      "ratio_of_single_charge_samples": 0.000879,
+      "percent_of_single_charge_samples": 0.0879,
+      "ratio_of_all_samples": 0.000864,
+      "percent_of_all_samples": 0.0864
+    },
+    {
+      "charge": "袭警罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "窝藏罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "集资诈骗罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "走私废物罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "非法种植毒品原植物罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "犯危险驾驶罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "包庇罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "非法行医罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "弹药罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "以危险方法危害公共安全罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "妨害药品管理罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "过失致人重伤罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "串通投标罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "投放危险物质罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "抢夺罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "非法储存爆炸物罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "非法买卖枪支罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "盗掘古文化遗址罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "利用邪教组织破坏法律实施罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "招摇撞骗罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "破坏公用电信设施罪",
+      "count": 3,
+      "ratio_of_single_charge_samples": 0.000659,
+      "percent_of_single_charge_samples": 0.0659,
+      "ratio_of_all_samples": 0.000648,
+      "percent_of_all_samples": 0.0648
+    },
+    {
+      "charge": "绑架罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "濒危野生动物制品罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "人盗窃罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "危险作业罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "骗取贷款罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "重婚罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "走私毒品罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "拒不执行判决罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "非法提供信用卡信息罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "滥用职权罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "伪造事业单位印章罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "过失投放危险物质罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "出售非法制造的发票罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "伪造公司印章罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "贷款诈骗罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "贩卖淫秽物品牟利罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "非法利用信息网络罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "破坏电力设备罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "运送他人偷越国（边）境罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "销售非法制造的注册商标标识罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "偷越国境罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "非法转让土地使用权罪",
+      "count": 2,
+      "ratio_of_single_charge_samples": 0.00044,
+      "percent_of_single_charge_samples": 0.044,
+      "ratio_of_all_samples": 0.000432,
+      "percent_of_all_samples": 0.0432
+    },
+    {
+      "charge": "非法采伐国家重点保护植物罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法毁坏国家重点保护植物罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "犯故意伤害罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法买卖制毒物品罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "骗取出口退税罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "销售有害食品罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "虚开发票罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "窃照专用器材罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "诈骗、偷越国（边）境罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "印章罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "犯故意毁坏财物罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "虚假诉讼罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "传播性病罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "伪造证据罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "侮辱尸体罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法制造注册商标标识罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法储存枪支罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "等四人盗伐林木罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "犯故意杀人罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "偷越国(边)境罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "传播淫秽物品牟利罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "过失以危险方法危害公共安全罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法买卖弹药罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "逃税罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "销售有毒有害食品罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "变造国家机关证件罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "破坏生产经营罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "容留他人吸食毒品罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "妨害信用卡管理罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "高空抛物罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法处置查封的财产罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "假冒注册商标罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "犯贩卖毒品罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "涉贩卖毒品罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "毁坏国家重点保护植物罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "人非法经营罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法持有毒品原植物种子罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "伪造企业印章罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法持有、私藏枪支、弹药罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "留他人吸毒罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "犯盗窃罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法出售增值税专用发票罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "破坏交通工具罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "国有事业单位人员滥用职权罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "变造居民身份证件罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "储存枪支罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法制造枪支弹药罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "伪造货币罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "买卖身份证件罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法制造罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法占用农用地、危险驾驶罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "伪造国家机关公文罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "故意伤害、危险驾驶罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法持有、非法制造枪支罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法持有枪支、储存爆炸物罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "人开设赌场罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "盗窃一罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "故意损毁名胜古迹罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "组织卖淫、协助组织卖淫罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法占用农地罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "帮助毁灭证据罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "赌博一罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "洗钱罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "组织、领导传销活动罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "伪造金融票证罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法私藏枪支罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "窝藏毒品罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "寻衅滋事案罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "人赌博罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "危害珍贵野生动物罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法邮寄弹药罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "破坏监管秩序罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "买卖国家机关证件、印章罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "人侵犯公民个人信息罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "买卖枪支罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "挪用公款罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "非法持有枪支、弹药罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "组织卖淫罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "出售陆生野生动物罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    },
+    {
+      "charge": "交通肇事一罪",
+      "count": 1,
+      "ratio_of_single_charge_samples": 0.00022,
+      "percent_of_single_charge_samples": 0.022,
+      "ratio_of_all_samples": 0.000216,
+      "percent_of_all_samples": 0.0216
+    }
+  ],
+  "multi_charge_distribution": [
+    {
+      "label": "掩饰、隐瞒犯罪所得罪 + 盗窃罪",
+      "count": 13,
+      "ratio": 0.002808
+    },
+    {
+      "label": "帮助信息网络犯罪活动罪 + 活动罪",
+      "count": 8,
+      "ratio": 0.001728
+    },
+    {
+      "label": "贩卖毒品罪 + 非法持有毒品罪",
+      "count": 6,
+      "ratio": 0.001296
+    },
+    {
+      "label": "贩卖毒品罪 + 运输毒品罪",
+      "count": 3,
+      "ratio": 0.000648
+    },
+    {
+      "label": "帮助毁灭证据罪 + 走私普通货物罪",
+      "count": 2,
+      "ratio": 0.000432
+    },
+    {
+      "label": "制造毒品罪 + 贩卖毒品罪",
+      "count": 2,
+      "ratio": 0.000432
+    },
+    {
+      "label": "帮助信息网络犯罪活动罪 + 掩饰、隐瞒犯罪所得罪",
+      "count": 2,
+      "ratio": 0.000432
+    },
+    {
+      "label": "贩卖毒品罪 + 走私毒品罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "容留他人吸毒罪 + 盗窃罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "寻衅滋事罪 + 强迫交易罪 + 非法吸收公众存款罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "贩卖毒品罪 + 非法持有枪支罪 + 非法持有毒品罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "故意伤害罪 + 盗窃罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "掩饰、隐瞒犯罪所得罪 + 走私普通货物罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "虚开增值税专用发票罪 + 骗取出口退税罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "故意伤害罪 + 窝藏罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "污染环境罪 + 非法采矿罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "伪证罪 + 盗窃罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "寻衅滋事罪 + 故意伤害罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "伪证罪 + 妨害作证罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "偷越国(边)境罪 + 组织他人偷越国(边)境罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "组织他人偷越国（边）境罪 + 运送他人偷越国（边）境罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "合同诈骗罪 + 非法吸收公众存款罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "开设赌场罪 + 故意伤害罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "行贿罪 + 贩卖毒品罪 + 非法采矿罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "介绍卖淫罪 + 容留卖淫罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "容留他人吸毒罪 + 贩卖毒品罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "寻衅滋事罪 + 敲诈勒索罪 + 盗伐林木罪 + 行贿罪 + 非法拘禁罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "出售非法制造的发票罪 + 虚**票罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "开设赌场罪 + 聚众斗殴罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "危险驾驶罪 + 窝藏罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "参加黑社会性质组织罪 + 寻衅滋事罪 + 故意伤害罪 + 领导黑社会性质组织罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "组织他人偷越国(边)境罪 + 运送他人偷越国(边)境罪 + 运送他人偷越国（边）境罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "拐卖儿童罪 + 诈骗罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "盗伐林木罪 + 非法运输盗伐的林木罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "濒危野生动物罪 + 非法狩猎罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "帮助毁灭证据罪 + 故意杀人罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "假冒注册商标罪 + 销售假冒注册商标的商品罪 + 销售非法制造的注册商标标识罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "组织考试作弊罪 + 诈骗罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "非法持有枪支罪 + 非法狩猎罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "寻衅滋事罪 + 敲诈勒索罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "制造毒品罪 + 盗窃罪 + 贩卖毒品罪 + 运输毒品罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "盗窃罪 + 破坏电力设备罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "故意毁坏财物罪 + 贩卖毒品罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "寻衅滋事罪 + 赌博罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "包庇罪 + 聚众斗殴罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "盗窃罪 + 诈骗罪",
+      "count": 1,
+      "ratio": 0.000216
+    },
+    {
+      "label": "开设赌场罪 + 赌博罪",
+      "count": 1,
+      "ratio": 0.000216
+    }
+  ],
+  "by_decision": {
+    "存疑不起诉": {
+      "total": 101,
+      "distribution": [
+        {
+          "label": "故意伤害罪",
+          "count": 9,
+          "ratio": 0.089109,
+          "percent": 8.9109
+        },
+        {
+          "label": "非法拘禁罪",
+          "count": 9,
+          "ratio": 0.089109,
+          "percent": 8.9109
+        },
+        {
+          "label": "诈骗罪",
+          "count": 8,
+          "ratio": 0.079208,
+          "percent": 7.9208
+        },
+        {
+          "label": "合同诈骗罪",
+          "count": 7,
+          "ratio": 0.069307,
+          "percent": 6.9307
+        },
+        {
+          "label": "危险驾驶罪",
+          "count": 7,
+          "ratio": 0.069307,
+          "percent": 6.9307
+        },
+        {
+          "label": "交通肇事罪",
+          "count": 5,
+          "ratio": 0.049505,
+          "percent": 4.9505
+        },
+        {
+          "label": "盗窃罪",
+          "count": 4,
+          "ratio": 0.039604,
+          "percent": 3.9604
+        },
+        {
+          "label": "走私普通货物罪",
+          "count": 4,
+          "ratio": 0.039604,
+          "percent": 3.9604
+        },
+        {
+          "label": "贩卖毒品罪",
+          "count": 4,
+          "ratio": 0.039604,
+          "percent": 3.9604
+        },
+        {
+          "label": "虚开增值税专用发票罪",
+          "count": 4,
+          "ratio": 0.039604,
+          "percent": 3.9604
+        },
+        {
+          "label": "掩饰、隐瞒犯罪所得罪",
+          "count": 3,
+          "ratio": 0.029703,
+          "percent": 2.9703
+        },
+        {
+          "label": "非法经营罪",
+          "count": 3,
+          "ratio": 0.029703,
+          "percent": 2.9703
+        },
+        {
+          "label": "非法占用农用地罪",
+          "count": 3,
+          "ratio": 0.029703,
+          "percent": 2.9703
+        },
+        {
+          "label": "破坏公用电信设施罪",
+          "count": 3,
+          "ratio": 0.029703,
+          "percent": 2.9703
+        },
+        {
+          "label": "制造毒品罪 + 贩卖毒品罪",
+          "count": 2,
+          "ratio": 0.019802,
+          "percent": 1.9802
+        },
+        {
+          "label": "寻衅滋事罪",
+          "count": 2,
+          "ratio": 0.019802,
+          "percent": 1.9802
+        },
+        {
+          "label": "污染环境罪",
+          "count": 2,
+          "ratio": 0.019802,
+          "percent": 1.9802
+        },
+        {
+          "label": "骗取出口退税罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "濒危野生动物制品罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "有害食品罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "销售伪劣产品罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "骗取贷款罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "挪用资金罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "放火罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "侵犯公民个人信息罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "故意杀人罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "容留卖淫罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "窝藏罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "敲诈勒索罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "（未提取）",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "帮助信息网络犯罪活动罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "聚众斗殴罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "伪造金融票证罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "窝藏毒品罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "非国家工作人员受贿罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "故意毁坏财物罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "非法采矿罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "运输毒品罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        },
+        {
+          "label": "买卖枪支罪",
+          "count": 1,
+          "ratio": 0.009901,
+          "percent": 0.9901
+        }
+      ]
+    },
+    "法定不起诉": {
+      "total": 41,
+      "distribution": [
+        {
+          "label": "开设赌场罪",
+          "count": 6,
+          "ratio": 0.146341,
+          "percent": 14.6341
+        },
+        {
+          "label": "掩饰、隐瞒犯罪所得罪",
+          "count": 4,
+          "ratio": 0.097561,
+          "percent": 9.7561
+        },
+        {
+          "label": "信用卡诈骗罪",
+          "count": 3,
+          "ratio": 0.073171,
+          "percent": 7.3171
+        },
+        {
+          "label": "危险驾驶罪",
+          "count": 3,
+          "ratio": 0.073171,
+          "percent": 7.3171
+        },
+        {
+          "label": "故意杀人罪",
+          "count": 3,
+          "ratio": 0.073171,
+          "percent": 7.3171
+        },
+        {
+          "label": "盗窃罪",
+          "count": 3,
+          "ratio": 0.073171,
+          "percent": 7.3171
+        },
+        {
+          "label": "裁定罪",
+          "count": 2,
+          "ratio": 0.04878,
+          "percent": 4.878
+        },
+        {
+          "label": "故意伤害罪",
+          "count": 2,
+          "ratio": 0.04878,
+          "percent": 4.878
+        },
+        {
+          "label": "重大责任事故罪",
+          "count": 2,
+          "ratio": 0.04878,
+          "percent": 4.878
+        },
+        {
+          "label": "滥伐林木罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "盗伐林木罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "职务侵占罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "非法制造注册商标标识罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "运输毒品罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "妨害信用卡管理罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "濒危野生动物罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "盗掘古文化遗址罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "帮助毁灭证据罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "帮助信息网络犯罪活动罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "（未提取）",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "贷款诈骗罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        },
+        {
+          "label": "买卖国家机关证件罪",
+          "count": 1,
+          "ratio": 0.02439,
+          "percent": 2.439
+        }
+      ]
+    },
+    "相对不起诉": {
+      "total": 480,
+      "distribution": [
+        {
+          "label": "危险驾驶罪",
+          "count": 186,
+          "ratio": 0.3875,
+          "percent": 38.75
+        },
+        {
+          "label": "盗窃罪",
+          "count": 61,
+          "ratio": 0.127083,
+          "percent": 12.7083
+        },
+        {
+          "label": "故意伤害罪",
+          "count": 48,
+          "ratio": 0.1,
+          "percent": 10.0
+        },
+        {
+          "label": "交通肇事罪",
+          "count": 46,
+          "ratio": 0.095833,
+          "percent": 9.5833
+        },
+        {
+          "label": "帮助信息网络犯罪活动罪",
+          "count": 13,
+          "ratio": 0.027083,
+          "percent": 2.7083
+        },
+        {
+          "label": "走私普通货物罪",
+          "count": 12,
+          "ratio": 0.025,
+          "percent": 2.5
+        },
+        {
+          "label": "掩饰、隐瞒犯罪所得罪",
+          "count": 10,
+          "ratio": 0.020833,
+          "percent": 2.0833
+        },
+        {
+          "label": "非法占用农用地罪",
+          "count": 9,
+          "ratio": 0.01875,
+          "percent": 1.875
+        },
+        {
+          "label": "重大责任事故罪",
+          "count": 7,
+          "ratio": 0.014583,
+          "percent": 1.4583
+        },
+        {
+          "label": "非法狩猎罪",
+          "count": 7,
+          "ratio": 0.014583,
+          "percent": 1.4583
+        },
+        {
+          "label": "诈骗罪",
+          "count": 7,
+          "ratio": 0.014583,
+          "percent": 1.4583
+        },
+        {
+          "label": "信用卡诈骗罪",
+          "count": 6,
+          "ratio": 0.0125,
+          "percent": 1.25
+        },
+        {
+          "label": "滥伐林木罪",
+          "count": 5,
+          "ratio": 0.010417,
+          "percent": 1.0417
+        },
+        {
+          "label": "故意毁坏财物罪",
+          "count": 4,
+          "ratio": 0.008333,
+          "percent": 0.8333
+        },
+        {
+          "label": "寻衅滋事罪",
+          "count": 4,
+          "ratio": 0.008333,
+          "percent": 0.8333
+        },
+        {
+          "label": "非法拘禁罪",
+          "count": 4,
+          "ratio": 0.008333,
+          "percent": 0.8333
+        },
+        {
+          "label": "职务侵占罪",
+          "count": 3,
+          "ratio": 0.00625,
+          "percent": 0.625
+        },
+        {
+          "label": "濒危野生动物罪",
+          "count": 3,
+          "ratio": 0.00625,
+          "percent": 0.625
+        },
+        {
+          "label": "妨害公务罪",
+          "count": 3,
+          "ratio": 0.00625,
+          "percent": 0.625
+        },
+        {
+          "label": "侵犯公民个人信息罪",
+          "count": 3,
+          "ratio": 0.00625,
+          "percent": 0.625
+        },
+        {
+          "label": "非法捕捞水产品罪",
+          "count": 2,
+          "ratio": 0.004167,
+          "percent": 0.4167
+        },
+        {
+          "label": "虚开增值税专用发票罪",
+          "count": 2,
+          "ratio": 0.004167,
+          "percent": 0.4167
+        },
+        {
+          "label": "包庇罪",
+          "count": 2,
+          "ratio": 0.004167,
+          "percent": 0.4167
+        },
+        {
+          "label": "串通投标罪",
+          "count": 2,
+          "ratio": 0.004167,
+          "percent": 0.4167
+        },
+        {
+          "label": "伪造公司印章罪",
+          "count": 2,
+          "ratio": 0.004167,
+          "percent": 0.4167
+        },
+        {
+          "label": "危害国家重点保护植物罪",
+          "count": 2,
+          "ratio": 0.004167,
+          "percent": 0.4167
+        },
+        {
+          "label": "物品罪",
+          "count": 2,
+          "ratio": 0.004167,
+          "percent": 0.4167
+        },
+        {
+          "label": "开设赌场罪",
+          "count": 2,
+          "ratio": 0.004167,
+          "percent": 0.4167
+        },
+        {
+          "label": "拒不支付劳动报酬罪",
+          "count": 2,
+          "ratio": 0.004167,
+          "percent": 0.4167
+        },
+        {
+          "label": "窝藏罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "有害食品罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "非法吸收公众存款罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "非法持有枪支罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "使用虚假身份证件罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "非法处置查封的财产罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "毁坏国家重点保护植物罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "破坏电力设备罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "（未提取）",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "非法储存爆炸物罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "销售假冒注册商标的商品罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "非法侵入住宅罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "裁定罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "盗伐林木罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "非法经营罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "利用邪教组织破坏法律实施罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "非法邮寄弹药罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "买卖国家机关证件罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "失火罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "组织卖淫罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        },
+        {
+          "label": "交通肇事一罪",
+          "count": 1,
+          "ratio": 0.002083,
+          "percent": 0.2083
+        }
+      ]
+    },
+    "起诉": {
+      "total": 4008,
+      "distribution": [
+        {
+          "label": "危险驾驶罪",
+          "count": 1245,
+          "ratio": 0.310629,
+          "percent": 31.0629
+        },
+        {
+          "label": "盗窃罪",
+          "count": 559,
+          "ratio": 0.139471,
+          "percent": 13.9471
+        },
+        {
+          "label": "故意伤害罪",
+          "count": 287,
+          "ratio": 0.071607,
+          "percent": 7.1607
+        },
+        {
+          "label": "交通肇事罪",
+          "count": 228,
+          "ratio": 0.056886,
+          "percent": 5.6886
+        },
+        {
+          "label": "诈骗罪",
+          "count": 211,
+          "ratio": 0.052645,
+          "percent": 5.2645
+        },
+        {
+          "label": "帮助信息网络犯罪活动罪",
+          "count": 169,
+          "ratio": 0.042166,
+          "percent": 4.2166
+        },
+        {
+          "label": "贩卖毒品罪",
+          "count": 161,
+          "ratio": 0.04017,
+          "percent": 4.017
+        },
+        {
+          "label": "掩饰、隐瞒犯罪所得罪",
+          "count": 105,
+          "ratio": 0.026198,
+          "percent": 2.6198
+        },
+        {
+          "label": "走私普通货物罪",
+          "count": 72,
+          "ratio": 0.017964,
+          "percent": 1.7964
+        },
+        {
+          "label": "寻衅滋事罪",
+          "count": 64,
+          "ratio": 0.015968,
+          "percent": 1.5968
+        },
+        {
+          "label": "开设赌场罪",
+          "count": 48,
+          "ratio": 0.011976,
+          "percent": 1.1976
+        },
+        {
+          "label": "非法占用农用地罪",
+          "count": 48,
+          "ratio": 0.011976,
+          "percent": 1.1976
+        },
+        {
+          "label": "妨害公务罪",
+          "count": 36,
+          "ratio": 0.008982,
+          "percent": 0.8982
+        },
+        {
+          "label": "故意杀人罪",
+          "count": 34,
+          "ratio": 0.008483,
+          "percent": 0.8483
+        },
+        {
+          "label": "非法经营罪",
+          "count": 31,
+          "ratio": 0.007735,
+          "percent": 0.7735
+        },
+        {
+          "label": "赌博罪",
+          "count": 23,
+          "ratio": 0.005739,
+          "percent": 0.5739
+        },
+        {
+          "label": "非法狩猎罪",
+          "count": 22,
+          "ratio": 0.005489,
+          "percent": 0.5489
+        },
+        {
+          "label": "抢劫罪",
+          "count": 20,
+          "ratio": 0.00499,
+          "percent": 0.499
+        },
+        {
+          "label": "合同诈骗罪",
+          "count": 19,
+          "ratio": 0.004741,
+          "percent": 0.4741
+        },
+        {
+          "label": "虚开增值税专用发票罪",
+          "count": 17,
+          "ratio": 0.004242,
+          "percent": 0.4242
+        },
+        {
+          "label": "运输毒品罪",
+          "count": 16,
+          "ratio": 0.003992,
+          "percent": 0.3992
+        },
+        {
+          "label": "容留他人吸毒罪",
+          "count": 16,
+          "ratio": 0.003992,
+          "percent": 0.3992
+        },
+        {
+          "label": "重大责任事故罪",
+          "count": 16,
+          "ratio": 0.003992,
+          "percent": 0.3992
+        },
+        {
+          "label": "信用卡诈骗罪",
+          "count": 16,
+          "ratio": 0.003992,
+          "percent": 0.3992
+        },
+        {
+          "label": "容留卖淫罪",
+          "count": 16,
+          "ratio": 0.003992,
+          "percent": 0.3992
+        },
+        {
+          "label": "非法持有枪支罪",
+          "count": 14,
+          "ratio": 0.003493,
+          "percent": 0.3493
+        },
+        {
+          "label": "贪污罪",
+          "count": 14,
+          "ratio": 0.003493,
+          "percent": 0.3493
+        },
+        {
+          "label": "受贿罪",
+          "count": 13,
+          "ratio": 0.003244,
+          "percent": 0.3244
+        },
+        {
+          "label": "掩饰、隐瞒犯罪所得罪 + 盗窃罪",
+          "count": 13,
+          "ratio": 0.003244,
+          "percent": 0.3244
+        },
+        {
+          "label": "故意毁坏财物罪",
+          "count": 13,
+          "ratio": 0.003244,
+          "percent": 0.3244
+        },
+        {
+          "label": "滥伐林木罪",
+          "count": 13,
+          "ratio": 0.003244,
+          "percent": 0.3244
+        },
+        {
+          "label": "过失致人死亡罪",
+          "count": 12,
+          "ratio": 0.002994,
+          "percent": 0.2994
+        },
+        {
+          "label": "非法采矿罪",
+          "count": 12,
+          "ratio": 0.002994,
+          "percent": 0.2994
+        },
+        {
+          "label": "失火罪",
+          "count": 11,
+          "ratio": 0.002745,
+          "percent": 0.2745
+        },
+        {
+          "label": "敲诈勒索罪",
+          "count": 11,
+          "ratio": 0.002745,
+          "percent": 0.2745
+        },
+        {
+          "label": "非法制造枪支罪",
+          "count": 11,
+          "ratio": 0.002745,
+          "percent": 0.2745
+        },
+        {
+          "label": "非法持有毒品罪",
+          "count": 9,
+          "ratio": 0.002246,
+          "percent": 0.2246
+        },
+        {
+          "label": "使用虚假身份证件罪",
+          "count": 9,
+          "ratio": 0.002246,
+          "percent": 0.2246
+        },
+        {
+          "label": "销售假冒注册商标的商品罪",
+          "count": 9,
+          "ratio": 0.002246,
+          "percent": 0.2246
+        },
+        {
+          "label": "非法拘禁罪",
+          "count": 8,
+          "ratio": 0.001996,
+          "percent": 0.1996
+        },
+        {
+          "label": "帮助信息网络犯罪活动罪 + 活动罪",
+          "count": 8,
+          "ratio": 0.001996,
+          "percent": 0.1996
+        },
+        {
+          "label": "有害食品罪",
+          "count": 8,
+          "ratio": 0.001996,
+          "percent": 0.1996
+        },
+        {
+          "label": "非法吸收公众存款罪",
+          "count": 8,
+          "ratio": 0.001996,
+          "percent": 0.1996
+        },
+        {
+          "label": "拒不支付劳动报酬罪",
+          "count": 7,
+          "ratio": 0.001747,
+          "percent": 0.1747
+        },
+        {
+          "label": "职务侵占罪",
+          "count": 7,
+          "ratio": 0.001747,
+          "percent": 0.1747
+        },
+        {
+          "label": "介绍卖淫罪",
+          "count": 7,
+          "ratio": 0.001747,
+          "percent": 0.1747
+        },
+        {
+          "label": "销售伪劣产品罪",
+          "count": 7,
+          "ratio": 0.001747,
+          "percent": 0.1747
+        },
+        {
+          "label": "贩卖毒品罪 + 非法持有毒品罪",
+          "count": 6,
+          "ratio": 0.001497,
+          "percent": 0.1497
+        },
+        {
+          "label": "非法捕捞水产品罪",
+          "count": 6,
+          "ratio": 0.001497,
+          "percent": 0.1497
+        },
+        {
+          "label": "聚众斗殴罪",
+          "count": 6,
+          "ratio": 0.001497,
+          "percent": 0.1497
+        },
+        {
+          "label": "裁定罪",
+          "count": 6,
+          "ratio": 0.001497,
+          "percent": 0.1497
+        },
+        {
+          "label": "变造身份证件罪",
+          "count": 6,
+          "ratio": 0.001497,
+          "percent": 0.1497
+        },
+        {
+          "label": "非法侵入住宅罪",
+          "count": 6,
+          "ratio": 0.001497,
+          "percent": 0.1497
+        },
+        {
+          "label": "强奸罪",
+          "count": 5,
+          "ratio": 0.001248,
+          "percent": 0.1248
+        },
+        {
+          "label": "买卖国家机关证件罪",
+          "count": 5,
+          "ratio": 0.001248,
+          "percent": 0.1248
+        },
+        {
+          "label": "放火罪",
+          "count": 5,
+          "ratio": 0.001248,
+          "percent": 0.1248
+        },
+        {
+          "label": "盗伐林木罪",
+          "count": 5,
+          "ratio": 0.001248,
+          "percent": 0.1248
+        },
+        {
+          "label": "销售假药罪",
+          "count": 5,
+          "ratio": 0.001248,
+          "percent": 0.1248
+        },
+        {
+          "label": "行贿罪",
+          "count": 4,
+          "ratio": 0.000998,
+          "percent": 0.0998
+        },
+        {
+          "label": "制造毒品罪",
+          "count": 4,
+          "ratio": 0.000998,
+          "percent": 0.0998
+        },
+        {
+          "label": "挪用资金罪",
+          "count": 4,
+          "ratio": 0.000998,
+          "percent": 0.0998
+        },
+        {
+          "label": "销售不符合安全标准的食品罪",
+          "count": 4,
+          "ratio": 0.000998,
+          "percent": 0.0998
+        },
+        {
+          "label": "偷越国（边）境罪",
+          "count": 4,
+          "ratio": 0.000998,
+          "percent": 0.0998
+        },
+        {
+          "label": "玩忽职守罪",
+          "count": 4,
+          "ratio": 0.000998,
+          "percent": 0.0998
+        },
+        {
+          "label": "袭警罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "危害国家重点保护植物罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "贩卖毒品罪 + 运输毒品罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "集资诈骗罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "走私废物罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "非法种植毒品原植物罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "非国家工作人员受贿罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "犯危险驾驶罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "非法行医罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "弹药罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "以危险方法危害公共安全罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "妨害药品管理罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "濒危野生动物罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "过失致人重伤罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "投放危险物质罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "抢夺罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "非法买卖枪支罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "招摇撞骗罪",
+          "count": 3,
+          "ratio": 0.000749,
+          "percent": 0.0749
+        },
+        {
+          "label": "绑架罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "帮助毁灭证据罪 + 走私普通货物罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "物品罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "人盗窃罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "危险作业罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "重婚罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "走私毒品罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "帮助信息网络犯罪活动罪 + 掩饰、隐瞒犯罪所得罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "（未提取）",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "拒不执行判决罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "非法提供信用卡信息罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "滥用职权罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "伪造事业单位印章罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "过失投放危险物质罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "出售非法制造的发票罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "非法储存爆炸物罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "贩卖淫秽物品牟利罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "非法利用信息网络罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "运送他人偷越国（边）境罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "销售非法制造的注册商标标识罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "偷越国境罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "非法转让土地使用权罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "利用邪教组织破坏法律实施罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "污染环境罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "盗掘古文化遗址罪",
+          "count": 2,
+          "ratio": 0.000499,
+          "percent": 0.0499
+        },
+        {
+          "label": "贩卖毒品罪 + 走私毒品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "容留他人吸毒罪 + 盗窃罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "寻衅滋事罪 + 强迫交易罪 + 非法吸收公众存款罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法采伐国家重点保护植物罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法毁坏国家重点保护植物罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "犯故意伤害罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法买卖制毒物品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "贩卖毒品罪 + 非法持有枪支罪 + 非法持有毒品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "故意伤害罪 + 盗窃罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "掩饰、隐瞒犯罪所得罪 + 走私普通货物罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "虚开增值税专用发票罪 + 骗取出口退税罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "故意伤害罪 + 窝藏罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "污染环境罪 + 非法采矿罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "销售有害食品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "虚开发票罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "伪证罪 + 盗窃罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "寻衅滋事罪 + 故意伤害罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "伪证罪 + 妨害作证罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "窃照专用器材罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "诈骗、偷越国（边）境罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "印章罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "偷越国(边)境罪 + 组织他人偷越国(边)境罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "犯故意毁坏财物罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "虚假诉讼罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "组织他人偷越国（边）境罪 + 运送他人偷越国（边）境罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "合同诈骗罪 + 非法吸收公众存款罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "窝藏罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "开设赌场罪 + 故意伤害罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "传播性病罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "伪造证据罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "行贿罪 + 贩卖毒品罪 + 非法采矿罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "介绍卖淫罪 + 容留卖淫罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "侮辱尸体罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法储存枪支罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "等四人盗伐林木罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "犯故意杀人罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "偷越国(边)境罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "传播淫秽物品牟利罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "容留他人吸毒罪 + 贩卖毒品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "串通投标罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "寻衅滋事罪 + 敲诈勒索罪 + 盗伐林木罪 + 行贿罪 + 非法拘禁罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "出售非法制造的发票罪 + 虚**票罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "开设赌场罪 + 聚众斗殴罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "危险驾驶罪 + 窝藏罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "参加黑社会性质组织罪 + 寻衅滋事罪 + 故意伤害罪 + 领导黑社会性质组织罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "过失以危险方法危害公共安全罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法买卖弹药罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "逃税罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "销售有毒有害食品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "变造国家机关证件罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "组织他人偷越国(边)境罪 + 运送他人偷越国(边)境罪 + 运送他人偷越国（边）境罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "破坏生产经营罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "容留他人吸食毒品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "贷款诈骗罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "高空抛物罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "假冒注册商标罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "犯贩卖毒品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "包庇罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "涉贩卖毒品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "人非法经营罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "拐卖儿童罪 + 诈骗罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法持有毒品原植物种子罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "伪造企业印章罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "侵犯公民个人信息罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "盗伐林木罪 + 非法运输盗伐的林木罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法持有、私藏枪支、弹药罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "留他人吸毒罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "濒危野生动物罪 + 非法狩猎罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "帮助毁灭证据罪 + 故意杀人罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "犯盗窃罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "假冒注册商标罪 + 销售假冒注册商标的商品罪 + 销售非法制造的注册商标标识罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "组织考试作弊罪 + 诈骗罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法持有枪支罪 + 非法狩猎罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法出售增值税专用发票罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "破坏交通工具罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "破坏电力设备罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "国有事业单位人员滥用职权罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "变造居民身份证件罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "储存枪支罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "寻衅滋事罪 + 敲诈勒索罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "濒危野生动物制品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法制造枪支弹药罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "制造毒品罪 + 盗窃罪 + 贩卖毒品罪 + 运输毒品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "伪造货币罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "买卖身份证件罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "盗窃罪 + 破坏电力设备罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法制造罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法占用农用地、危险驾驶罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "伪造国家机关公文罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "故意伤害、危险驾驶罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "故意毁坏财物罪 + 贩卖毒品罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法持有、非法制造枪支罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法持有枪支、储存爆炸物罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "人开设赌场罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "盗窃一罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "骗取贷款罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "故意损毁名胜古迹罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "组织卖淫、协助组织卖淫罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法占用农地罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "寻衅滋事罪 + 赌博罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "包庇罪 + 聚众斗殴罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "赌博一罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "洗钱罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "组织、领导传销活动罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法私藏枪支罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "寻衅滋事案罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "人赌博罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "危害珍贵野生动物罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "盗窃罪 + 诈骗罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "破坏监管秩序罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "开设赌场罪 + 赌博罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "买卖国家机关证件、印章罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "人侵犯公民个人信息罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "挪用公款罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "非法持有枪支、弹药罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        },
+        {
+          "label": "出售陆生野生动物罪",
+          "count": 1,
+          "ratio": 0.00025,
+          "percent": 0.025
+        }
+      ]
+    }
+  }
+}

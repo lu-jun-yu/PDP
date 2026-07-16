@@ -1,6 +1,11 @@
 #!/bin/bash
 # =============================================================
-#  scripts/train_RQ3_dapo.sh — RQ3 DAPO 类别占比干预训练
+#  scripts/train_RQ3_gspo.sh -- RQ3 GSPO 类别占比干预训练
+#
+#  GSPO 在官方 TRL 中不是新的 Trainer，而是基于 GRPOTrainer：
+#    - loss_type="grpo"
+#    - importance_sampling_level="sequence"
+#    - 配合 num_iterations > 1 或 steps_per_generation > grad_accum
 #
 #  默认设置：
 #    - 数据集: data/pdp2k_rq3
@@ -10,32 +15,22 @@
 #    - seed: 42
 #
 #  用法：
-#    bash scripts/train_RQ3_dapo.sh
-#    bash scripts/train_RQ3_dapo.sh DNP-40 DNP-55
-#    RQ3_GROUPS="balanced DNP-40" bash scripts/train_RQ3_dapo.sh
+#    bash scripts/train_RQ3_gspo.sh
+#    bash scripts/train_RQ3_gspo.sh DNP-40 DNP-55
+#    RQ3_GROUPS="balanced DNP-40" bash scripts/train_RQ3_gspo.sh
 #
 #  常用覆盖：
-#    MODEL_PATH=/path/to/Qwen3-8B DATA_PATH=data/pdp2k_rq3 bash scripts/train_RQ3_dapo.sh
-#    PROMPT_VARIANT=original MAX_SAMPLES=32 DRY_RUN=1 bash scripts/train_RQ3_dapo.sh balanced
-#
-#  PyTorch 前向 OOM：减小 BATCH_SIZE / NUM_GENERATIONS，或加大 GRAD_ACCUM。
-#  TRL + vLLM colocate：勿用 ZeRO-3（参数被分片为占位 tensor，vLLM load_weights 会报 Size([4096]) vs Size([0])）。
-#  默认 ZeRO-2；仅训练、无 colocate vLLM 时再考虑 DEEPSPEED_CONFIG=configs/ds_zero3.json。
-#  ZeRO-2 在 optimizer.step 处 CUDA OOM：可 OFFLOAD_OPTIMIZER=1（ZeRO-2 + 优化器 CPU offload），
-#    需加主机内存或 swap（建议系统可用内存+swap 合计 ≥128GB 更稳；两 rank 仍会占不少 RAM）。
-#    OFFLOAD_OPTIMIZER=1 bash scripts/train_RQ3_dapo.sh balanced
-#  ZeRO-1 也支持优化器 offload：DEEPSPEED_CONFIG=configs/ds_zero1_offload.json（只分片优化器，与 ZeRO-2 offload 的 CPU/GPU 行为略有差别，可二选一试）。
-#  vLLM “No available memory for the cache blocks”：略提高 VLLM_GPU_MEM_UTIL。
-#    BATCH_SIZE=1 GRAD_ACCUM=64 NUM_GENERATIONS=4 bash scripts/train_RQ3_dapo.sh balanced
+#    MODEL_PATH=/path/to/Qwen3-8B DATA_PATH=data/pdp2k_rq3 bash scripts/train_RQ3_gspo.sh
+#    PROMPT_VARIANT=original MAX_SAMPLES=32 DRY_RUN=1 bash scripts/train_RQ3_gspo.sh balanced
 # =============================================================
 
 set -euo pipefail
 
-if [[ "${DAPO_LOG_ACTIVE:-0}" != "1" ]]; then
+if [[ "${GSPO_LOG_ACTIVE:-0}" != "1" ]]; then
     LOG_DIR="${LOG_DIR:-logs}"
     mkdir -p "$LOG_DIR"
-    LOG_FILE="${LOG_FILE:-$LOG_DIR/train_RQ3_dapo_$(date +%Y%m%d_%H%M%S).log}"
-    export DAPO_LOG_ACTIVE=1
+    LOG_FILE="${LOG_FILE:-$LOG_DIR/train_RQ3_gspo_$(date +%Y%m%d_%H%M%S).log}"
+    export GSPO_LOG_ACTIVE=1
     export LOG_FILE
     export PYTHONUNBUFFERED="${PYTHONUNBUFFERED:-1}"
 
@@ -44,7 +39,7 @@ if [[ "${DAPO_LOG_ACTIVE:-0}" != "1" ]]; then
     else
         exec > >(tee -a "$LOG_FILE") 2>&1
     fi
-    echo "[train_RQ3_dapo] log_file=$LOG_FILE"
+    echo "[train_RQ3_gspo] log_file=$LOG_FILE"
 fi
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
@@ -70,7 +65,7 @@ DEEPSPEED_CONFIG="${DEEPSPEED_CONFIG:-$_default_deepspeed}"
 # ---- RQ3 数据与模型 ----
 MODEL_PATH="${MODEL_PATH:-models/Qwen3-8B}"
 DATA_PATH="${DATA_PATH:-data/pdp2k_rq3}"
-OUTPUT_ROOT="${OUTPUT_ROOT:-checkpoints/RQ3_DAPO}"
+OUTPUT_ROOT="${OUTPUT_ROOT:-checkpoints/RQ3_GSPO}"
 PROMPT_VARIANT="${PROMPT_VARIANT:-original}"
 
 DEFAULT_GROUPS="balanced DNP-40 DNP-55 SNP-40 SNP-55 IENP-40 IENP-55" # natural
@@ -79,7 +74,7 @@ if [[ $# -gt 0 ]]; then
 else
     RQ3_GROUPS="${RQ3_GROUPS:-$DEFAULT_GROUPS}"
 fi
-echo "[train_RQ3_dapo] argv_count=$# argv=[$*] resolved_RQ3_GROUPS=[$RQ3_GROUPS]"
+echo "[train_RQ3_gspo] argv_count=$# argv=[$*] resolved_RQ3_GROUPS=[$RQ3_GROUPS]"
 SEED="${SEED:-42}"
 
 # ---- 生成 ----
@@ -105,10 +100,9 @@ LORA_DROPOUT="${LORA_DROPOUT:-0.05}"
 LORA_BIAS="${LORA_BIAS:-none}"
 LORA_TARGET_MODULES="${LORA_TARGET_MODULES:-q_proj k_proj v_proj o_proj gate_proj up_proj down_proj}"
 
-# ---- DAPO 超参 ----
+# ---- GSPO 超参 ----
 EPSILON="${EPSILON:-0.2}"
 NUM_ITERATIONS="${NUM_ITERATIONS:-2}"
-EPSILON_HIGH="${EPSILON_HIGH:-0.28}"
 STEPS_PER_GENERATION="${STEPS_PER_GENERATION:-}"
 
 # ---- 日志与保存 ----
@@ -119,7 +113,7 @@ WANDB_PROJECT="${WANDB_PROJECT:-PDP-RQ3}"
 mkdir -p "$OUTPUT_ROOT"
 
 echo "============================================================="
-echo "RQ3 DAPO training"
+echo "RQ3 GSPO training"
 echo "  model:                $MODEL_PATH"
 echo "  data:                 $DATA_PATH"
 echo "  groups:               $RQ3_GROUPS"
@@ -133,9 +127,8 @@ echo "  num_gen:              $NUM_GENERATIONS"
 echo "  vllm_gpu_mem:         $VLLM_GPU_MEM_UTIL"
 echo "  use_lora:             $USE_LORA"
 echo "  lora_r/alpha/drop:    $LORA_R / $LORA_ALPHA / $LORA_DROPOUT"
-echo "  dapo_epsilon:         $EPSILON"
-echo "  dapo_epsilon_high:    $EPSILON_HIGH"
-echo "  dapo_num_iterations:  $NUM_ITERATIONS"
+echo "  gspo_epsilon:         $EPSILON"
+echo "  gspo_num_iterations:  $NUM_ITERATIONS"
 echo "  steps_per_generation: ${STEPS_PER_GENERATION:-<trl-default>}"
 echo "============================================================="
 
@@ -149,12 +142,12 @@ MODEL_NAME="$(basename "$MODEL_PATH")"
 
 for GROUP in $RQ3_GROUPS; do
     GROUP_SAFE="${GROUP//-/_}"
-    RUN_NAME="RQ3_DAPO_${MODEL_NAME}_${GROUP_SAFE}_seed${SEED}_${PROMPT_VARIANT}"
+    RUN_NAME="RQ3_GSPO_${MODEL_NAME}_${GROUP_SAFE}_seed${SEED}_${PROMPT_VARIANT}"
     OUTPUT_DIR="${OUTPUT_ROOT}/${RUN_NAME}"
 
     CMD=(
         deepspeed --num_gpus "$NUM_GPUS"
-        train/dapo.py
+        train/gspo.py
         --deepspeed "$DEEPSPEED_CONFIG"
         --model-path "$MODEL_PATH"
         --data-path "$DATA_PATH"
@@ -172,7 +165,6 @@ for GROUP in $RQ3_GROUPS; do
         --learning-rate "$LR"
         --seed "$SEED"
         --epsilon "$EPSILON"
-        --epsilon-high "$EPSILON_HIGH"
         --num-iterations "$NUM_ITERATIONS"
         --logging-steps "$LOGGING_STEPS"
         --save-steps "$SAVE_STEPS"
@@ -217,4 +209,4 @@ for GROUP in $RQ3_GROUPS; do
 done
 
 echo
-echo "[完成] RQ3 DAPO training jobs finished."
+echo "[完成] RQ3 GSPO training jobs finished."

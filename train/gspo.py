@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-train/dapo.py
+train/gspo.py
 
-使用 trl GRPOTrainer (DAPO loss) + vLLM 对 PDP 数据集进行强化学习训练。
-关键设置：
-  - loss_type="dapo"：消除长度偏差，使用非对称裁剪
-  - temperature=1.0, top_p=1.0, top_k=None：采样策略与策略模型一致，避免分布偏移
-  - beta=0.0：不使用 KL 惩罚
-  - mask_truncated_completions=True：排除被截断的生成
+使用 TRL GRPOTrainer 按 GSPO 方式对 PDP 数据集进行强化学习训练。
+这里不引入新的 Trainer，而是沿用远程训练栈中的 GRPOTrainer，并采用：
+  - loss_type="grpo"
+  - importance_sampling_level="sequence"
+  - num_iterations > 1 或 steps_per_generation > gradient_accumulation_steps
 
-Usage:
-    python train/dapo.py --model-path models/Qwen3-8B --data-path data/pdp2k_rq3 --split balanced
+从而在同一条 RQ3 数据/奖励/提示词流水线上切换为 GSPO。
 """
 
 import argparse
@@ -95,7 +93,7 @@ def get_last_checkpoint(output_dir: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="PDP DAPO 训练脚本")
+    parser = argparse.ArgumentParser(description="PDP GSPO 训练脚本")
     parser.add_argument("--model-path", default="models/Qwen3-8B")
     parser.add_argument("--data-path", default="data/pdp2k_rq3")
     parser.add_argument(
@@ -109,7 +107,7 @@ def main():
         choices=PROMPT_VARIANTS,
         help="提示词版本，RQ3 默认 original",
     )
-    parser.add_argument("--output-dir", default="results/dapo")
+    parser.add_argument("--output-dir", default="results/gspo")
     # 生成
     parser.add_argument("--max-completion-length", type=int, default=2048)
     parser.add_argument("--max-prompt-length", type=int, default=3072)
@@ -149,40 +147,40 @@ def main():
             "down_proj",
         ],
     )
-    # DAPO 超参
-    parser.add_argument("--epsilon", type=float, default=0.2,
-                        help="裁剪下界 (trust region)")
-    parser.add_argument("--epsilon-high", type=float, default=0.28,
-                        help="裁剪上界 (DAPO 非对称裁剪)")
+    # GSPO 超参
+    parser.add_argument(
+        "--epsilon",
+        type=float,
+        default=0.2,
+        help="GRPO/GSPO 对称裁剪阈值",
+    )
     parser.add_argument(
         "--num-iterations",
         type=int,
         default=2,
-        help="每批 rollout 对应的优化迭代次数；默认与 GSPO 训练脚本对齐",
+        help="每批 rollout 对应的优化迭代次数；大于 1 时启用 GSPO 的 off-policy 校正",
     )
     parser.add_argument(
         "--steps-per-generation",
         type=int,
         default=None,
-        help="每次生成的 rollout 供多少个优化 step 使用；默认留空，由 TRL 处理",
+        help=(
+            "每次生成的 rollout 供多少个优化 step 使用；默认留空，"
+            "由 TRL 按当前 gradient_accumulation_steps 处理"
+        ),
     )
     # 日志与保存
     parser.add_argument("--logging-steps", type=int, default=10)
     parser.add_argument("--save-steps", type=int, default=100)
     # wandb
-    parser.add_argument("--wandb-project", default="pdp-dapo",
-                        help="wandb 项目名称")
-    parser.add_argument("--run-name", default=None,
-                        help="wandb run 名称（默认自动生成）")
+    parser.add_argument("--wandb-project", default="pdp-gspo", help="wandb 项目名称")
+    parser.add_argument("--run-name", default=None, help="wandb run 名称（默认自动生成）")
     # DeepSpeed
-    parser.add_argument("--deepspeed", default=None,
-                        help="DeepSpeed 配置文件路径（多卡训练时使用）")
+    parser.add_argument("--deepspeed", default=None, help="DeepSpeed 配置文件路径（多卡训练时使用）")
     # DeepSpeed 启动器会注入 --local_rank 参数
-    parser.add_argument("--local_rank", type=int, default=-1,
-                        help="DeepSpeed 注入的 local rank（勿手动设置）")
+    parser.add_argument("--local_rank", type=int, default=-1, help="DeepSpeed 注入的 local rank（勿手动设置）")
     args = parser.parse_args()
 
-    # 设置 wandb 项目名称（通过环境变量传递给 wandb）
     if args.wandb_project:
         os.environ["WANDB_PROJECT"] = args.wandb_project
 
@@ -199,17 +197,17 @@ def main():
     )
 
     print(
-        f"[DAPO] data_path={args.data_path} split={split_name} "
+        f"[GSPO] data_path={args.data_path} split={split_name} "
         f"samples={len(dataset)} prompt_variant={args.prompt_variant} "
         f"num_iterations={args.num_iterations} "
         f"steps_per_generation={args.steps_per_generation} "
         f"use_lora={args.use_lora}"
     )
 
-    # ---- 训练配置 (DAPO) ----
+    # ---- 训练配置 (GSPO via GRPOTrainer) ----
     config_kwargs = dict(
         output_dir=args.output_dir,
-        # 生成采样：温度 1.0，不使用 top_p/top_k，保证采样与策略分布一致
+        # 生成采样：温度 1.0，不使用 top_p/top_k，保持采样与策略分布一致
         temperature=1.0,
         top_p=1.0,
         top_k=None,
@@ -217,12 +215,12 @@ def main():
         max_completion_length=args.max_completion_length,
         max_prompt_length=args.max_prompt_length,
         num_generations=args.num_generations,
-        # DAPO 核心参数
-        loss_type="dapo",
+        # GSPO 核心参数
+        loss_type="grpo",
         beta=0.0,
         epsilon=args.epsilon,
         num_iterations=args.num_iterations,
-        epsilon_high=args.epsilon_high,
+        importance_sampling_level="sequence",
         mask_truncated_completions=True,
         # vLLM
         use_vllm=True,
@@ -236,8 +234,7 @@ def main():
         learning_rate=args.learning_rate,
         seed=args.seed,
         bf16=True,
-        # 梯度检查点：8B 模型 + GRPO/DAPO + colocate vLLM 在 A100 80GB 上
-        # 必须开 grad ckpt 才放得下激活；use_reentrant=False 适配 trl/DeepSpeed
+        # 梯度检查点：与 dapo.py 保持一致
         gradient_checkpointing=True,
         gradient_checkpointing_kwargs={"use_reentrant": False},
         # 日志与保存

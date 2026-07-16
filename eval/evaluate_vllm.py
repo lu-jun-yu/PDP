@@ -50,6 +50,7 @@ from vllm import LLM, SamplingParams
 from prompt_template import PROMPT_VARIANTS, build_messages
 from eval.metrics import (
     build_metrics_markdown,
+    build_rq2_result_f1_mean_se,
     build_rq2_stability_markdown,
     compute_metrics,
     normalize_decision_label,
@@ -532,11 +533,22 @@ def main():
     os.makedirs(result_subdir, exist_ok=True)
 
     metrics_file = os.path.join(result_subdir, "metrics.md")
+    result_f1_entries = []
+    for si in range(n):
+        for ri in range(args.num_repeats):
+            record = completed[(si, ri)]
+            result_f1_entries.append({
+                "run_id": record.get("run_id", ri),
+                "prediction": record["prediction"],
+                "reference": record["reference"],
+            })
+    result_f1_mean_se = build_rq2_result_f1_mean_se(result_f1_entries)
     metrics_output = build_metrics_markdown(
         metrics,
         model=args.model_path,
         variant=variant_tag,
         num_samples=total_evals,
+        result_f1_mean_se=result_f1_mean_se,
     )
 
     if multi_run:

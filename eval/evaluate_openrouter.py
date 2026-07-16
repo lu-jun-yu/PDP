@@ -688,5 +688,135 @@ def main():
         logger.info("断点文件已清理")
 
 
+async def call_openrouter(
+    client,
+    model: str,
+    messages: list[dict],
+    max_tokens: int,
+    temperature: float | None,
+    top_p: float | None,
+    top_k: int | None,
+    min_p: float | None,
+    reasoning_effort: str,
+    semaphore: asyncio.Semaphore,
+    max_retries: int = 5,
+    reasoning_max_tokens: int | None = None,
+) -> dict:
+    """Stable OpenRouter wrapper with a degraded retry when include_reasoning triggers empty choices."""
+    if reasoning_max_tokens is not None and reasoning_effort != "auto":
+        raise ValueError(
+            "call_openrouter: reasoning_max_tokens and non-auto reasoning_effort cannot be used together"
+        )
+
+    def build_request_kwargs() -> dict:
+        kwargs = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+        }
+        if temperature is not None:
+            kwargs["temperature"] = temperature
+        if top_p is not None:
+            kwargs["top_p"] = top_p
+
+        extra_body = {}
+        if top_k is not None:
+            extra_body["top_k"] = top_k
+        if min_p is not None:
+            extra_body["min_p"] = min_p
+        if reasoning_max_tokens is not None:
+            extra_body["reasoning"] = {
+                "enabled": True,
+                "max_tokens": reasoning_max_tokens,
+            }
+        elif reasoning_effort != "auto":
+            extra_body["reasoning"] = {"effort": reasoning_effort}
+
+        if (
+            reasoning_max_tokens is not None
+            or reasoning_effort != "auto"
+            or top_k is not None
+            or min_p is not None
+        ):
+            extra_body["provider"] = {"require_parameters": True}
+
+        if extra_body:
+            kwargs["extra_body"] = extra_body
+        return kwargs
+
+    async with semaphore:
+        for attempt in range(max_retries):
+            try:
+                response = await client.chat.completions.create(**build_request_kwargs())
+                choices = getattr(response, "choices", None) or []
+                if not choices:
+                    raise ValueError(
+                        "OpenRouter returned empty choices (transient or unsupported params)"
+                    )
+
+                first = choices[0]
+                if first is None:
+                    raise ValueError("OpenRouter returned null choice[0]")
+                message = getattr(first, "message", None)
+                if message is None:
+                    raise ValueError("OpenRouter returned empty message in choice[0]")
+                content = message.content or ""
+
+                reasoning = (
+                    getattr(message, "reasoning", None)
+                    or getattr(message, "reasoning_content", None)
+                    or ""
+                )
+                if not reasoning:
+                    details = getattr(message, "reasoning_details", None) or []
+                    parts = []
+                    for item in details:
+                        if isinstance(item, dict):
+                            summary = item.get("summary")
+                            if isinstance(summary, list):
+                                for value in summary:
+                                    if isinstance(value, str) and value.strip():
+                                        parts.append(value.strip())
+                            elif isinstance(summary, str) and summary.strip():
+                                parts.append(summary.strip())
+                            elif isinstance(item.get("text"), str) and item.get("text").strip():
+                                parts.append(item["text"].strip())
+                    reasoning = "\n".join(parts).strip()
+
+                return {
+                    "content": content,
+                    "reasoning": reasoning,
+                }
+            except Exception as e:
+                err_msg = str(e)
+                is_last = attempt == max_retries - 1
+                retryable = (
+                    "429" in err_msg
+                    or "500" in err_msg
+                    or "502" in err_msg
+                    or "503" in err_msg
+                    or "timed out" in err_msg.lower()
+                    or "timeout" in err_msg.lower()
+                    or "connection" in err_msg.lower()
+                    or "jsondecodeerror" in err_msg.lower()
+                    or "expecting value" in err_msg.lower()
+                    or "empty choices" in err_msg.lower()
+                    or "empty message" in err_msg.lower()
+                    or "null choice" in err_msg.lower()
+                    or "'nonetype' object is not subscriptable" in err_msg.lower()
+                )
+                if retryable and not is_last:
+                    wait = 4 ** attempt * 4
+                    logger.warning(
+                        f"API request failed (attempt {attempt + 1}/{max_retries}): "
+                        f"{err_msg[:100]}... waiting {wait}s before retry"
+                    )
+                    await asyncio.sleep(wait)
+                else:
+                    logger.error(f"API request failed: {err_msg[:200]}")
+                    raise
+        raise RuntimeError(f"API request failed after {max_retries} retries")
+
+
 if __name__ == "__main__":
     main()
